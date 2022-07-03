@@ -169,6 +169,7 @@ resource "aws_launch_template" "x86" {
   name          = "depot-builder-${var.name}-x86"
   description   = "Launch template for Depot builder instances"
   ebs_optimized = true
+  image_id      = var.ami.x86
   instance_type = var.instance-types.x86
   tags          = var.tags
 
@@ -206,6 +207,7 @@ resource "aws_launch_template" "arm" {
   name          = "depot-builder-${var.name}-arm"
   description   = "Launch template for Depot builder instances"
   ebs_optimized = true
+  image_id      = var.ami.arm
   instance_type = var.instance-types.arm
   tags          = var.tags
 
