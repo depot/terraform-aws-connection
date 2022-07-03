@@ -1,0 +1,48 @@
+#!/bin/bash
+set -ex
+
+# Update packages
+yum update -y
+
+# Install Docker
+amazon-linux-extras install -y docker
+systemctl start docker
+systemctl enable docker
+
+# Install SSM agent
+if [[ "$(uname -m)" == "aarch64" ]]; then
+  yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_arm64/amazon-ssm-agent.rpm
+else
+  yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+fi
+
+# Set up environment variables
+cat > /etc/profile.d/env.sh << 'EOF'
+export ASG_NAME="${asg_name}"
+EOF
+chmod a+x /etc/profile.d/env.sh
+
+# Install builder agent
+# TODO: download this from the API
+wget -o /tmp/builder-agent.tar.gz https://github.com/depot/builder-agent/releases/download/v0.0.1/build-agent_0.0.1_linux_amd64.tar.gz
+tar zxfv /tmp/builder-agent.tar.gz bin/builder-agent --strip-components=1 -C /usr/bin
+/usr/bin/builder-agent --version
+/usr/bin/builder-agent prepare
+
+# cat << EOF > /usr/lib/systemd/system/builder-agent.service
+# [Unit]
+# Description=BuildKit
+# After=network-online.target
+# Requires=network-online.target
+
+# [Service]
+# Type=simple
+# ExecStart=/usr/bin/builder-agent
+# Restart=always
+# RestartSec=5
+
+# [Install]
+# WantedBy=multi-user.target
+# EOF
+# systemctl daemon-reload
+# systemctl enable builder-agent.service
