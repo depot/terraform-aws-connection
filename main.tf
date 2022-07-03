@@ -1,10 +1,6 @@
 # Locals
 
 locals {
-  common-tags = {
-    "depot.dev" = "managed"
-  }
-
   asg-name-x86 = "depot-builder-${var.name}-x86"
   asg-name-arm = "depot-builder-${var.name}-arm"
 }
@@ -263,7 +259,7 @@ resource "aws_launch_template" "x86" {
 
   tag_specifications {
     resource_type = "instance"
-    tags          = { Name = "depot-builder-${var.name}-x86" }
+    tags          = merge(var.tags, { Name = "depot-builder-${var.name}-x86", "depot.dev" = "managed" })
   }
 }
 
@@ -302,7 +298,7 @@ resource "aws_launch_template" "arm" {
 
   tag_specifications {
     resource_type = "instance"
-    tags          = { Name = "depot-builder-${var.name}-arm" }
+    tags          = merge(var.tags, { Name = "depot-builder-${var.name}-arm", "depot.dev" = "managed" })
   }
 }
 
