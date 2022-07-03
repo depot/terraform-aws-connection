@@ -16,12 +16,6 @@ amazon-linux-extras install -y docker
 systemctl start docker
 systemctl enable docker
 
-# Set up environment variables
-cat > /etc/profile.d/env.sh << 'EOF'
-export ASG_NAME="${asg_name}"
-EOF
-chmod a+x /etc/profile.d/env.sh
-
 # Install builder agent
 # TODO: download this from the API
 if [[ "$(uname -m)" == "aarch64" ]]; then
