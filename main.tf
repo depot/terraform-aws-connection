@@ -164,14 +164,14 @@ resource "aws_iam_role_policy_attachment" "test-attach" {
 
 # AMIs
 
-data "aws_ssm_parameters_by_path" "x86" {
+data "aws_ssm_parameter" "x86" {
   count = var.create ? 1 : 0
-  path  = "/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-x86_64-gp2"
+  name  = "/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-x86_64-gp2"
 }
 
-data "aws_ssm_parameters_by_path" "arm" {
+data "aws_ssm_parameter" "arm" {
   count = var.create ? 1 : 0
-  path  = "/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-arm64-gp2"
+  name  = "/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-arm64-gp2"
 }
 
 # Launch Templates
@@ -181,7 +181,7 @@ resource "aws_launch_template" "x86" {
   name          = "depot-builder-${var.name}-x86"
   description   = "Launch template for Depot builder instances"
   ebs_optimized = true
-  image_id      = nonsensitive(data.aws_ssm_parameters_by_path.x86[0].values[0])
+  image_id      = nonsensitive(data.aws_ssm_parameters.x86[0].value)
   instance_type = var.instance-types.x86
   tags          = var.tags
   user_data     = filebase64("${path.module}/user-data.sh")
@@ -220,7 +220,7 @@ resource "aws_launch_template" "arm" {
   name          = "depot-builder-${var.name}-arm"
   description   = "Launch template for Depot builder instances"
   ebs_optimized = true
-  image_id      = nonsensitive(data.aws_ssm_parameters_by_path.arm[0].values[0])
+  image_id      = nonsensitive(data.aws_ssm_parameters.arm[0].value)
   instance_type = var.instance-types.arm
   tags          = var.tags
   user_data     = filebase64("${path.module}/user-data.sh")
