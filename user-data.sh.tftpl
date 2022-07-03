@@ -19,9 +19,9 @@ systemctl enable docker
 # Install builder agent
 # TODO: download this from the API
 if [[ "$(uname -m)" == "aarch64" ]]; then
-  wget -O /tmp/builder-agent.tar.gz https://github.com/depot/builder-agent/releases/download/v0.0.3/build-agent_0.0.3_linux_arm64.tar.gz
+  wget -O /tmp/builder-agent.tar.gz https://github.com/depot/builder-agent/releases/download/v0.0.4/builder-agent_linux_arm64.tar.gz
 else
-  wget -O /tmp/builder-agent.tar.gz https://github.com/depot/builder-agent/releases/download/v0.0.3/build-agent_0.0.3_linux_amd64.tar.gz
+  wget -O /tmp/builder-agent.tar.gz https://github.com/depot/builder-agent/releases/download/v0.0.4/builder-agent_linux_amd64.tar.gz
 fi
 tar -zxf /tmp/builder-agent.tar.gz --strip-components=1 --directory /usr/bin bin/builder-agent
 /usr/bin/builder-agent --version
