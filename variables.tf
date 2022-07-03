@@ -26,12 +26,6 @@ variable "instance-types" {
   default     = { x86 = "c6i.xlarge", arm = "c6g.xlarge" }
 }
 
-variable "ami" {
-  type        = object({ x86 = string, arm = string })
-  description = "AMIs to use for the builder instances"
-  default     = { x86 = "ami-0432a829da4fa3770", arm = "ami-0432a829da4fa3770" }
-}
-
 variable "availability-zone" {
   type        = string
   description = "Availability zone to use for the builder instances"
