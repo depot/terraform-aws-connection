@@ -165,13 +165,12 @@ resource "aws_iam_role_policy_attachment" "test-attach" {
 # Launch Templates
 
 resource "aws_launch_template" "x86" {
-  count                  = var.create ? 1 : 0
-  name                   = "depot-builder-${var.name}-x86"
-  description            = "Launch template for Depot builder instances"
-  ebs_optimized          = true
-  instance_type          = var.instance-types.x86
-  vpc_security_group_ids = [aws_security_group.builder[0].id]
-  tags                   = var.tags
+  count         = var.create ? 1 : 0
+  name          = "depot-builder-${var.name}-x86"
+  description   = "Launch template for Depot builder instances"
+  ebs_optimized = true
+  instance_type = var.instance-types.x86
+  tags          = var.tags
 
   block_device_mappings {
     device_name = "/dev/xvda"
@@ -189,6 +188,7 @@ resource "aws_launch_template" "x86" {
 
   network_interfaces {
     associate_public_ip_address = true
+    security_groups             = [aws_security_group.builder[0].id]
   }
 
   placement {
@@ -202,13 +202,12 @@ resource "aws_launch_template" "x86" {
 }
 
 resource "aws_launch_template" "arm" {
-  count                  = var.create ? 1 : 0
-  name                   = "depot-builder-${var.name}-arm"
-  description            = "Launch template for Depot builder instances"
-  ebs_optimized          = true
-  instance_type          = var.instance-types.arm
-  vpc_security_group_ids = [aws_security_group.builder[0].id]
-  tags                   = var.tags
+  count         = var.create ? 1 : 0
+  name          = "depot-builder-${var.name}-arm"
+  description   = "Launch template for Depot builder instances"
+  ebs_optimized = true
+  instance_type = var.instance-types.arm
+  tags          = var.tags
 
   block_device_mappings {
     device_name = "/dev/xvda"
@@ -226,6 +225,7 @@ resource "aws_launch_template" "arm" {
 
   network_interfaces {
     associate_public_ip_address = true
+    security_groups             = [aws_security_group.builder[0].id]
   }
 
   placement {
