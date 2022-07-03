@@ -1,11 +1,61 @@
-resource "aws_iam_instance_profile" "builder" {
-  count = var.create-builder-instance-profile ? 1 : 0
-  name  = "${var.name}-builder"
-  role  = aws_iam_role.builder[0].name
+# Data Resources
+
+data "aws_region" "current" {}
+
+# Locals
+
+locals {
+  common-tags = {
+    "depot.dev" = "managed"
+  }
 }
 
+# VPC
+
+resource "aws_vpc" "vpc" {
+  count      = var.create ? 1 : 0
+  cidr_block = "${var.vpc-cidr-prefix}.0.0/16"
+  tags       = merge(var.tags, { Name = var.name })
+}
+
+resource "aws_internet_gateway" "internet-gateway" {
+  count  = var.create ? 1 : 0
+  vpc_id = aws_vpc.vpc[0].id
+  tags   = merge(var.tags, { Name = var.name })
+}
+
+resource "aws_route_table" "public" {
+  count  = var.create ? 1 : 0
+  vpc_id = aws_vpc.vpc[0].id
+  tags   = merge(var.tags, { Name = "depot-builders-${var.name}" })
+}
+
+resource "aws_route" "public-internet-gateway" {
+  count                  = var.create ? 1 : 0
+  route_table_id         = aws_route_table.public[0].id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.internet-gateway[0].id
+}
+
+resource "aws_subnet" "public" {
+  count                   = var.create ? 1 : 0
+  vpc_id                  = aws_vpc.vpc[0].id
+  availability_zone       = var.availability-zone
+  cidr_block              = "${var.vpc-cidr-prefix}.0.0/16"
+  map_public_ip_on_launch = true
+  tags                    = merge(var.tags, { "Name" = "depot-builders-${var.name}" })
+}
+
+resource "aws_route_table_association" "public" {
+  count          = var.create ? 1 : 0
+  subnet_id      = aws_subnet.public[0].id
+  route_table_id = aws_route_table.public[0].id
+}
+
+# Builder IAM
+
 resource "aws_iam_role" "builder" {
-  count = var.create-builder-instance-profile ? 1 : 0
+  count = var.create ? 1 : 0
   name  = "builder"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -17,10 +67,19 @@ resource "aws_iam_role" "builder" {
   })
 }
 
+resource "aws_iam_instance_profile" "builder" {
+  count = var.create ? 1 : 0
+  name  = "depot-builder-${var.name}"
+  role  = aws_iam_role.builder[0].name
+}
+
+# Builder Security Group
+
 resource "aws_security_group" "builder" {
-  name        = "${var.name}-builder"
+  count       = var.create ? 1 : 0
+  name        = "depot-builder-${var.name}"
   description = "Builder security group for Depot connection ${var.name}"
-  vpc_id      = aws_vpc.vpc.id
+  vpc_id      = aws_vpc.vpc[0].id
 
   egress {
     from_port   = 0
@@ -29,9 +88,9 @@ resource "aws_security_group" "builder" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = {
-    Name = "${var.name}-builder"
-  }
+  tags = merge(var.tags, {
+    Name = "depot-builder-${var.name}"
+  })
 }
 
 resource "aws_iam_role" "depot" {
@@ -101,4 +160,130 @@ resource "aws_iam_role_policy_attachment" "test-attach" {
   count      = var.create ? 1 : 0
   role       = aws_iam_role.depot[0].name
   policy_arn = aws_iam_policy.depot[0].arn
+}
+
+# Launch Templates
+
+resource "aws_launch_template" "x86" {
+  count                  = var.create ? 1 : 0
+  name                   = "depot-builder-${var.name}-x86"
+  description            = "Launch template for Depot builder instances"
+  ebs_optimized          = true
+  instance_type          = var.instance-types.x86
+  vpc_security_group_ids = [aws_security_group.builder[0].id]
+  tags                   = var.tags
+
+  block_device_mappings {
+    device_name = "/dev/xvda"
+    ebs {
+      delete_on_termination = true
+      encrypted             = true
+      volume_size           = 10
+      volume_type           = "gp3"
+    }
+  }
+
+  iam_instance_profile {
+    arn = aws_iam_instance_profile.builder[0].arn
+  }
+
+  network_interfaces {
+    associate_public_ip_address = true
+  }
+
+  placement {
+    availability_zone = var.availability-zone
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+    tags          = { Name = "depot-builder-${var.name}-x86" }
+  }
+}
+
+resource "aws_launch_template" "arm" {
+  count                  = var.create ? 1 : 0
+  name                   = "depot-builder-${var.name}-arm"
+  description            = "Launch template for Depot builder instances"
+  ebs_optimized          = true
+  instance_type          = var.instance-types.arm
+  vpc_security_group_ids = [aws_security_group.builder[0].id]
+  tags                   = var.tags
+
+  block_device_mappings {
+    device_name = "/dev/xvda"
+    ebs {
+      delete_on_termination = true
+      encrypted             = true
+      volume_size           = 10
+      volume_type           = "gp3"
+    }
+  }
+
+  iam_instance_profile {
+    arn = aws_iam_instance_profile.builder[0].arn
+  }
+
+  network_interfaces {
+    associate_public_ip_address = true
+  }
+
+  placement {
+    availability_zone = var.availability-zone
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+    tags          = { Name = "depot-builder-${var.name}-arm" }
+  }
+}
+
+# Autoscaling Groups
+
+resource "aws_autoscaling_group" "x86" {
+  count               = var.create ? 1 : 0
+  name                = "depot-builder-${var.name}-x86"
+  max_size            = 0
+  min_size            = 0
+  desired_capacity    = 0
+  suspended_processes = ["Terminate"]
+
+  launch_template {
+    id      = aws_launch_template.x86[0].id
+    version = "$Latest"
+  }
+
+  warm_pool {
+    pool_state = "Stopped"
+    min_size   = 0
+  }
+
+  lifecycle {
+    # Depot will manage these values
+    ignore_changes = [max_size, min_size, desired_capacity, warm_pool[0].min_size]
+  }
+}
+
+resource "aws_autoscaling_group" "arm" {
+  count               = var.create ? 1 : 0
+  name                = "depot-builder-${var.name}-arm"
+  max_size            = 0
+  min_size            = 0
+  desired_capacity    = 0
+  suspended_processes = ["Terminate"]
+
+  launch_template {
+    id      = aws_launch_template.arm[0].id
+    version = "$Latest"
+  }
+
+  warm_pool {
+    pool_state = "Stopped"
+    min_size   = 0
+  }
+
+  lifecycle {
+    # Depot will manage these values
+    ignore_changes = [max_size, min_size, desired_capacity, warm_pool[0].min_size]
+  }
 }

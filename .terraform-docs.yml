@@ -1,0 +1,15 @@
+output-values:
+  enabled: true
+  from: example-outputs.json
+
+sections:
+  show:
+    - inputs
+    - outputs
+
+settings:
+  hide-empty: true
+
+sort:
+  enabled: true
+  by: required

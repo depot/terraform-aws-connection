@@ -20,22 +20,21 @@ variable "external-id" {
   description = "External ID for the Depot connection (provided in the Depot console)"
 }
 
-variable "create-builder-instance-profile" {
-  type        = bool
-  description = "Create a new IAM instance profile for the builder role"
-  default     = "true"
+variable "instance-types" {
+  type        = object({ x86 = string, arm = string })
+  description = "Instance types to use for the builder instances"
+  default     = { x86 = "c6i.xlarge", arm = "c6g.xlarge" }
 }
 
-variable "create-vpc" {
-  type        = bool
-  description = "Create a new VPC"
-  default     = "true"
+variable "ami" {
+  type        = object({ x86 = string, arm = string })
+  description = "AMIs to use for the builder instances"
+  default     = { x86 = "ami-0432a829da4fa3770", arm = "ami-0432a829da4fa3770" }
 }
 
-variable "vpc-id" {
+variable "availability-zone" {
   type        = string
-  description = "Custom VPC ID, if var.create-vpc = false"
-  default     = ""
+  description = "Availability zone to use for the builder instances"
 }
 
 variable "vpc-cidr-prefix" {

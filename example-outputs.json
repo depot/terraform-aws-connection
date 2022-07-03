@@ -1,0 +1,22 @@
+{
+  "role-arm": {
+    "sensitive": false,
+    "type": "string",
+    "value": "<arn>"
+  },
+  "autoscaling-group-arn-arm": {
+    "sensitive": false,
+    "type": "string",
+    "value": "<arn>"
+  },
+  "autoscaling-group-arn-x86": {
+    "sensitive": false,
+    "type": "string",
+    "value": "<arn>"
+  },
+  "vpc-id": {
+    "sensitive": false,
+    "type": "string",
+    "value": "<vpc-id>"
+  }
+}
