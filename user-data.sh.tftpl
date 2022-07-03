@@ -31,8 +31,8 @@ chmod a+x /etc/profile.d/env.sh
 
 # Install builder agent
 # TODO: download this from the API
-wget -O /tmp/builder-agent.tar.gz https://github.com/depot/builder-agent/releases/download/v0.0.2/build-agent_0.0.2_linux_amd64.tar.gz
-tar zxfv /tmp/builder-agent.tar.gz bin/builder-agent --strip-components=1 -C /usr/bin
+wget -O /tmp/builder-agent.tar.gz https://github.com/depot/builder-agent/releases/download/v0.0.3/build-agent_0.0.3_linux_amd64.tar.gz
+tar -zxf /tmp/builder-agent.tar.gz --strip-components=1 --directory /usr/bin bin/builder-agent
 /usr/bin/builder-agent --version
 
 cat << EOF > /usr/lib/systemd/system/builder-agent.service
