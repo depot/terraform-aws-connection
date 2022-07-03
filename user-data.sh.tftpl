@@ -24,25 +24,28 @@ chmod a+x /etc/profile.d/env.sh
 
 # Install builder agent
 # TODO: download this from the API
-wget -o /tmp/builder-agent.tar.gz https://github.com/depot/builder-agent/releases/download/v0.0.1/build-agent_0.0.1_linux_amd64.tar.gz
+wget -o /tmp/builder-agent.tar.gz https://github.com/depot/builder-agent/releases/download/v0.0.2/build-agent_0.0.2_linux_amd64.tar.gz
 tar zxfv /tmp/builder-agent.tar.gz bin/builder-agent --strip-components=1 -C /usr/bin
 /usr/bin/builder-agent --version
+
+cat << EOF > /usr/lib/systemd/system/builder-agent.service
+[Unit]
+Description=BuildKit
+After=network-online.target
+Requires=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/builder-agent listen
+Restart=always
+RestartSec=5
+Environment="ASG_NAME=${asg_name}"
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl daemon-reload
+systemctl enable builder-agent.service
+
+export ASG_NAME="${asg_name}"
 /usr/bin/builder-agent prepare
-
-# cat << EOF > /usr/lib/systemd/system/builder-agent.service
-# [Unit]
-# Description=BuildKit
-# After=network-online.target
-# Requires=network-online.target
-
-# [Service]
-# Type=simple
-# ExecStart=/usr/bin/builder-agent
-# Restart=always
-# RestartSec=5
-
-# [Install]
-# WantedBy=multi-user.target
-# EOF
-# systemctl daemon-reload
-# systemctl enable builder-agent.service
