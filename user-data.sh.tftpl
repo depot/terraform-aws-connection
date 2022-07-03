@@ -4,6 +4,13 @@ set -ex
 # Update packages
 yum update -y
 
+# Install git
+yum install -y git
+
+# Disable unnecessary services
+systemctl disable postfix.service
+systemctl disable update-motd.service
+
 # Install Docker
 amazon-linux-extras install -y docker
 systemctl start docker
