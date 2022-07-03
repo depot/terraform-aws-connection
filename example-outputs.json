@@ -1,5 +1,5 @@
 {
-  "role-arm": {
+  "role-arn": {
     "sensitive": false,
     "type": "string",
     "value": "ROLE-ARN"

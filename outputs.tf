@@ -1,4 +1,4 @@
-output "role-arm" {
+output "role-arn" {
   value       = try(aws_iam_role.depot[0].name, "")
   description = "IAM role for the Depot connection"
 }
