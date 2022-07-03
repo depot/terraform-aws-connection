@@ -73,6 +73,28 @@ resource "aws_iam_instance_profile" "builder" {
   role  = aws_iam_role.builder[0].name
 }
 
+resource "aws_iam_policy" "builder" {
+  count       = var.create ? 1 : 0
+  name        = "depot-builder-${var.name}"
+  description = "IAM policy for Depot builders"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action   = ["autoscaling:CompleteLifecycleAction"]
+        Effect   = "Allow"
+        Resource = [aws_autoscaling_group.x86[0].arn, aws_autoscaling_group.arm[0].arn]
+      },
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "builder" {
+  count      = var.create ? 1 : 0
+  role       = aws_iam_role.builder[0].name
+  policy_arn = aws_iam_policy.builder[0].arn
+}
+
 # Builder Security Group
 
 resource "aws_security_group" "builder" {
@@ -93,6 +115,8 @@ resource "aws_security_group" "builder" {
   })
 }
 
+# Depot IAM Role
+
 resource "aws_iam_role" "depot" {
   count = var.create ? 1 : 0
   name  = "depot-${var.name}"
@@ -109,8 +133,8 @@ resource "aws_iam_role" "depot" {
 
 resource "aws_iam_policy" "depot" {
   count       = var.create ? 1 : 0
-  name        = "depot-${var.name}"
-  description = "IAM policy that allows Depot to manage builder instances and cache EBS volumes"
+  name        = "depot-connection-${var.name}"
+  description = "IAM policy for the Depot management service"
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
