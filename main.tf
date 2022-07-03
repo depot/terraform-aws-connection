@@ -181,7 +181,7 @@ resource "aws_launch_template" "x86" {
   name          = "depot-builder-${var.name}-x86"
   description   = "Launch template for Depot builder instances"
   ebs_optimized = true
-  image_id      = nonsensitive(data.aws_ssm_parameters.x86[0].value)
+  image_id      = nonsensitive(data.aws_ssm_parameter.x86[0].value)
   instance_type = var.instance-types.x86
   tags          = var.tags
   user_data     = filebase64("${path.module}/user-data.sh")
@@ -220,7 +220,7 @@ resource "aws_launch_template" "arm" {
   name          = "depot-builder-${var.name}-arm"
   description   = "Launch template for Depot builder instances"
   ebs_optimized = true
-  image_id      = nonsensitive(data.aws_ssm_parameters.arm[0].value)
+  image_id      = nonsensitive(data.aws_ssm_parameter.arm[0].value)
   instance_type = var.instance-types.arm
   tags          = var.tags
   user_data     = filebase64("${path.module}/user-data.sh")
