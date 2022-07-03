@@ -267,6 +267,14 @@ resource "aws_autoscaling_group" "x86" {
   }
 }
 
+resource "aws_autoscaling_lifecycle_hook" "x86" {
+  count                  = var.create ? 1 : 0
+  name                   = "launching"
+  autoscaling_group_name = aws_autoscaling_group.x86[0].name
+  lifecycle_transition   = "autoscaling:EC2_INSTANCE_LAUNCHING"
+  heartbeat_timeout      = 600 # 10 minutes
+}
+
 resource "aws_autoscaling_group" "arm" {
   count               = var.create ? 1 : 0
   name                = "depot-builder-${var.name}-arm"
@@ -290,4 +298,12 @@ resource "aws_autoscaling_group" "arm" {
     # Depot will manage these values
     ignore_changes = [max_size, min_size, desired_capacity, warm_pool[0].min_size]
   }
+}
+
+resource "aws_autoscaling_lifecycle_hook" "arm" {
+  count                  = var.create ? 1 : 0
+  name                   = "launching"
+  autoscaling_group_name = aws_autoscaling_group.arm[0].name
+  lifecycle_transition   = "autoscaling:EC2_INSTANCE_LAUNCHING"
+  heartbeat_timeout      = 600 # 10 minutes
 }
