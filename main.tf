@@ -144,13 +144,36 @@ resource "aws_iam_policy" "depot" {
     Version = "2012-10-17"
     Statement = [
       {
-        Action   = ["ec2:Describe*"]
+        Action = [
+          "autoscaling:DescribeAutoScalingGroups",
+          "autoscaling:DescribeAutoScalingInstances",
+          "autoscaling:DescribeInstanceRefreshes",
+          "autoscaling:DescribeLifecycleHooks",
+          "autoscaling:DescribeWarmPool",
+          "ec2:DescribeVolumes",
+        ]
         Effect   = "Allow"
         Resource = "*"
       },
 
       {
-        Action    = ["ec2:CreateVolume", "ec2:RunInstances"]
+        Action = [
+          "autoscaling:CompleteLifecycleAction",
+          "autoscaling:EnterStandby",
+          "autoscaling:ExitStandby",
+          "autoscaling:PutWarmPool",
+          "autoscaling:RecordLifecycleActionHeartbeat",
+          "autoscaling:SetDesiredCapacity",
+          "autoscaling:SetInstanceHealth",
+          "autoscaling:TerminateInstanceInAutoScalingGroup",
+          "autoscaling:UpdateAutoScalingGroup",
+        ]
+        Effect   = "Allow"
+        Resource = [aws_autoscaling_group.x86[0].arn, aws_autoscaling_group.arm[0].arn]
+      },
+
+      {
+        Action    = ["ec2:CreateVolume"]
         Effect    = "Allow"
         Resource  = "*",
         Condition = { StringEquals = { "aws:RequestTag/depot.dev" = "managed" } }
