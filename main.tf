@@ -310,7 +310,6 @@ resource "aws_autoscaling_group" "x86" {
   max_size            = 0
   min_size            = 0
   desired_capacity    = 0
-  suspended_processes = ["Terminate"]
   vpc_zone_identifier = [aws_subnet.public[0].id]
 
   launch_template {
@@ -343,7 +342,6 @@ resource "aws_autoscaling_group" "arm" {
   max_size            = 0
   min_size            = 0
   desired_capacity    = 0
-  suspended_processes = ["Terminate"]
   vpc_zone_identifier = [aws_subnet.public[0].id]
 
   launch_template {
