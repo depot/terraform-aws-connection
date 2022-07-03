@@ -172,6 +172,7 @@ resource "aws_launch_template" "x86" {
   image_id      = var.ami.x86
   instance_type = var.instance-types.x86
   tags          = var.tags
+  user_data     = filebase64("${path.module}/user-data.sh")
 
   block_device_mappings {
     device_name = "/dev/xvda"
@@ -210,6 +211,7 @@ resource "aws_launch_template" "arm" {
   image_id      = var.ami.arm
   instance_type = var.instance-types.arm
   tags          = var.tags
+  user_data     = filebase64("${path.module}/user-data.sh")
 
   block_device_mappings {
     device_name = "/dev/xvda"
