@@ -247,6 +247,7 @@ resource "aws_autoscaling_group" "x86" {
   min_size            = 0
   desired_capacity    = 0
   suspended_processes = ["Terminate"]
+  vpc_zone_identifier = [aws_subnet.public[0].id]
 
   launch_template {
     id      = aws_launch_template.x86[0].id
@@ -271,6 +272,7 @@ resource "aws_autoscaling_group" "arm" {
   min_size            = 0
   desired_capacity    = 0
   suspended_processes = ["Terminate"]
+  vpc_zone_identifier = [aws_subnet.public[0].id]
 
   launch_template {
     id      = aws_launch_template.arm[0].id
