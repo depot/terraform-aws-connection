@@ -56,7 +56,7 @@ resource "aws_route_table_association" "public" {
 
 resource "aws_iam_role" "builder" {
   count = var.create ? 1 : 0
-  name  = "builder"
+  name  = "depot-builder-${var.name}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
