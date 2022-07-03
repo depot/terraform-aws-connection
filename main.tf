@@ -95,6 +95,12 @@ resource "aws_iam_role_policy_attachment" "builder" {
   policy_arn = aws_iam_policy.builder[0].arn
 }
 
+resource "aws_iam_role_policy_attachment" "builder-ssm" {
+  count      = var.create && var.allow-ssm-access ? 1 : 0
+  role       = aws_iam_role.builder[0].name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
 # Builder Security Group
 
 resource "aws_security_group" "builder" {

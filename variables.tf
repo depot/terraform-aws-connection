@@ -36,3 +36,9 @@ variable "vpc-cidr-prefix" {
   description = "VPC CIDR prefix"
   default     = "10.0"
 }
+
+variable "allow-ssm-access" {
+  type        = bool
+  description = "Controls if SSM access should be allowed for the builder instances"
+  default     = false
+}
