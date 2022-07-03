@@ -8,6 +8,9 @@ locals {
   common-tags = {
     "depot.dev" = "managed"
   }
+
+  asg-name-x86 = "depot-builder-${var.name}-x86"
+  asg-name-arm = "depot-builder-${var.name}-arm"
 }
 
 # VPC
@@ -214,7 +217,7 @@ resource "aws_launch_template" "x86" {
   image_id      = nonsensitive(data.aws_ssm_parameter.x86[0].value)
   instance_type = var.instance-types.x86
   tags          = var.tags
-  user_data     = base64encode(templatefile("${path.module}/user-data.sh", { asg_name = aws_autoscaling_group.x86[0].name }))
+  user_data     = base64encode(templatefile("${path.module}/user-data.sh", { asg_name = local.asg-name-x86 }))
 
   block_device_mappings {
     device_name = "/dev/xvda"
@@ -253,7 +256,7 @@ resource "aws_launch_template" "arm" {
   image_id      = nonsensitive(data.aws_ssm_parameter.arm[0].value)
   instance_type = var.instance-types.arm
   tags          = var.tags
-  user_data     = base64encode(templatefile("${path.module}/user-data.sh", { asg_name = aws_autoscaling_group.arm[0].name }))
+  user_data     = base64encode(templatefile("${path.module}/user-data.sh", { asg_name = local.asg-name-arm }))
 
   block_device_mappings {
     device_name = "/dev/xvda"
@@ -288,7 +291,7 @@ resource "aws_launch_template" "arm" {
 
 resource "aws_autoscaling_group" "x86" {
   count               = var.create ? 1 : 0
-  name                = "depot-builder-${var.name}-x86"
+  name                = local.asg-name-x86
   max_size            = 0
   min_size            = 0
   desired_capacity    = 0
@@ -321,7 +324,7 @@ resource "aws_autoscaling_lifecycle_hook" "x86" {
 
 resource "aws_autoscaling_group" "arm" {
   count               = var.create ? 1 : 0
-  name                = "depot-builder-${var.name}-arm"
+  name                = local.asg-name-arm
   max_size            = 0
   min_size            = 0
   desired_capacity    = 0
