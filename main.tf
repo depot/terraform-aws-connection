@@ -322,6 +322,11 @@ resource "aws_autoscaling_group" "x86" {
     min_size   = 0
   }
 
+  tag {
+    key   = "depot-connection"
+    value = var.external-id
+  }
+
   lifecycle {
     # Depot will manage these values
     ignore_changes = [max_size, min_size, desired_capacity, warm_pool[0].min_size]
@@ -352,6 +357,11 @@ resource "aws_autoscaling_group" "arm" {
   warm_pool {
     pool_state = "Stopped"
     min_size   = 0
+  }
+
+  tag {
+    key   = "depot-connection"
+    value = var.external-id
   }
 
   lifecycle {
