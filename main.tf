@@ -323,8 +323,9 @@ resource "aws_autoscaling_group" "x86" {
   }
 
   tag {
-    key   = "depot-connection"
-    value = var.external-id
+    key                 = "depot-connection"
+    value               = var.external-id
+    propagate_at_launch = false
   }
 
   lifecycle {
@@ -360,8 +361,9 @@ resource "aws_autoscaling_group" "arm" {
   }
 
   tag {
-    key   = "depot-connection"
-    value = var.external-id
+    key                 = "depot-connection"
+    value               = var.external-id
+    propagate_at_launch = false
   }
 
   lifecycle {
