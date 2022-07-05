@@ -1,4 +1,14 @@
-# depot/depot-connection/aws
+# depot/connection/aws
+
+```tf
+module "connection" {
+  source            = "depot/connection/aws"
+  version           = "x.x.x"
+  name              = "connection-name"
+  external-id       = "xxxxxx"
+  availability-zone = "us-east-1a"
+}
+```
 
 <!-- BEGIN_TF_DOCS -->
 
