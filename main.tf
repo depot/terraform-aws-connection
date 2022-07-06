@@ -120,7 +120,7 @@ resource "aws_security_group" "builder" {
 
 resource "aws_iam_role" "depot" {
   count = var.create ? 1 : 0
-  name  = "depot-${var.name}"
+  name  = "depot-connection-${var.name}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
