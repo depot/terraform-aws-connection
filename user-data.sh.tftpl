@@ -42,3 +42,10 @@ systemctl enable builder-agent.service
 
 export ASG_NAME="${asg_name}"
 /usr/bin/builder-agent prepare
+
+# If the target state is InService, we are skipping the warm pool
+TOKEN="$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")"
+TARGET_STATE="$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -v http://169.254.169.254/latest/meta-data/autoscaling/target-lifecycle-state)"
+if [ "$TARGET_STATE" == "InService" ]; then
+  systemctl start builder-agent.service
+fi
