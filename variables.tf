@@ -1,3 +1,23 @@
+// Required
+
+variable "connection-id" {
+  type        = string
+  description = "ID for the Depot connection (provided in the Depot console)"
+}
+
+variable "connection-token" {
+  type        = string
+  description = "API token for the Depot connection (provided in the Depot console)"
+  sensitive   = true
+}
+
+variable "availability-zone" {
+  type        = string
+  description = "Availability zone to use for the builder instances"
+}
+
+// Optional
+
 variable "create" {
   type        = bool
   description = "Controls if Depot connection resources should be created"
@@ -10,30 +30,10 @@ variable "tags" {
   default     = {}
 }
 
-variable "name" {
-  type        = string
-  description = "Name of the Depot connection"
-}
-
-variable "connection-id" {
-  type        = string
-  description = "ID for the Depot connection (provided in the Depot console)"
-}
-
-variable "api-token" {
-  type        = string
-  description = "API token for the Depot connection (provided in the Depot console)"
-}
-
 variable "instance-types" {
   type        = object({ x86 = string, arm = string })
   description = "Instance types to use for the builder instances"
   default     = { x86 = "c6i.xlarge", arm = "c6g.xlarge" }
-}
-
-variable "availability-zone" {
-  type        = string
-  description = "Availability zone to use for the builder instances"
 }
 
 variable "vpc-cidr-prefix" {

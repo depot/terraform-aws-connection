@@ -5,9 +5,9 @@ data "aws_region" "current" {}
 # Locals
 
 locals {
-  asg-name-x86 = "depot-builder-${var.name}-x86"
-  asg-name-arm = "depot-builder-${var.name}-arm"
-  version      = "0.0.4"
+  asg-name-x86 = "depot-connection-${var.connection-id}-x86"
+  asg-name-arm = "depot-connection-${var.connection-id}-arm"
+  version      = "0.0.2"
 }
 
 # VPC
@@ -15,19 +15,19 @@ locals {
 resource "aws_vpc" "vpc" {
   count      = var.create ? 1 : 0
   cidr_block = "${var.vpc-cidr-prefix}.0.0/16"
-  tags       = merge(var.tags, { Name = var.name })
+  tags       = merge(var.tags, { Name = "depot-connection-${var.connection-id}" })
 }
 
 resource "aws_internet_gateway" "internet-gateway" {
   count  = var.create ? 1 : 0
   vpc_id = aws_vpc.vpc[0].id
-  tags   = merge(var.tags, { Name = var.name })
+  tags   = merge(var.tags, { Name = "depot-connection-${var.connection-id}" })
 }
 
 resource "aws_route_table" "public" {
   count  = var.create ? 1 : 0
   vpc_id = aws_vpc.vpc[0].id
-  tags   = merge(var.tags, { Name = "depot-builders-${var.name}" })
+  tags   = merge(var.tags, { Name = "depot-connection-${var.connection-id}" })
 }
 
 resource "aws_route" "public-internet-gateway" {
@@ -43,7 +43,7 @@ resource "aws_subnet" "public" {
   availability_zone       = var.availability-zone
   cidr_block              = "${var.vpc-cidr-prefix}.0.0/16"
   map_public_ip_on_launch = true
-  tags                    = merge(var.tags, { "Name" = "depot-builders-${var.name}" })
+  tags                    = merge(var.tags, { "Name" = "depot-connection-${var.connection-id}" })
 }
 
 resource "aws_route_table_association" "public" {
@@ -52,11 +52,11 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public[0].id
 }
 
-# Builder IAM
+# Instance IAM
 
-resource "aws_iam_role" "builder" {
+resource "aws_iam_role" "instance" {
   count = var.create ? 1 : 0
-  name  = "depot-builder-${var.name}"
+  name  = "depot-connection-${var.connection-id}-instance"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
@@ -67,37 +67,35 @@ resource "aws_iam_role" "builder" {
   })
 }
 
-resource "aws_iam_instance_profile" "builder" {
+resource "aws_iam_instance_profile" "instance" {
   count = var.create ? 1 : 0
-  name  = "depot-builder-${var.name}"
-  role  = aws_iam_role.builder[0].name
+  name  = "depot-connection-${var.connection-id}-instance"
+  role  = aws_iam_role.instance[0].name
 }
 
-resource "aws_iam_policy" "builder" {
+resource "aws_iam_policy" "instance" {
   count       = var.create ? 1 : 0
-  name        = "depot-builder-${var.name}"
-  description = "IAM policy for Depot builders"
+  name        = "depot-connection-${var.connection-id}-instance"
+  description = "IAM policy for Depot builder instance"
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
-      {
-        Action   = ["autoscaling:CompleteLifecycleAction"]
-        Effect   = "Allow"
-        Resource = [aws_autoscaling_group.x86[0].arn, aws_autoscaling_group.arm[0].arn]
-      },
-    ]
+    Statement = [{
+      Action   = ["autoscaling:CompleteLifecycleAction"]
+      Effect   = "Allow"
+      Resource = [aws_autoscaling_group.x86[0].arn, aws_autoscaling_group.arm[0].arn]
+    }]
   })
 }
 
-resource "aws_iam_role_policy_attachment" "builder" {
+resource "aws_iam_role_policy_attachment" "instance" {
   count      = var.create ? 1 : 0
-  role       = aws_iam_role.builder[0].name
-  policy_arn = aws_iam_policy.builder[0].arn
+  role       = aws_iam_role.instance[0].name
+  policy_arn = aws_iam_policy.instance[0].arn
 }
 
-resource "aws_iam_role_policy_attachment" "builder-ssm" {
+resource "aws_iam_role_policy_attachment" "instance-ssm" {
   count      = var.create && var.allow-ssm-access ? 1 : 0
-  role       = aws_iam_role.builder[0].name
+  role       = aws_iam_role.instance[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
@@ -105,8 +103,8 @@ resource "aws_iam_role_policy_attachment" "builder-ssm" {
 
 resource "aws_security_group" "cloud-agent" {
   count       = var.create ? 1 : 0
-  name        = "depot-cloud-agent-${var.name}"
-  description = "Security group for Depot cloud agent ${var.name}"
+  name        = "depot-connection-${var.connection-id}-cloud-agent"
+  description = "Security group for Depot connection cloud-agent"
   vpc_id      = aws_vpc.vpc[0].id
 
   egress {
@@ -117,14 +115,14 @@ resource "aws_security_group" "cloud-agent" {
   }
 
   tags = merge(var.tags, {
-    Name = "depot-cloud-agent-${var.name}"
+    Name = "depot-connection-${var.connection-id}-cloud-agent"
   })
 }
 
-resource "aws_security_group" "builder" {
+resource "aws_security_group" "instance" {
   count       = var.create ? 1 : 0
-  name        = "depot-builder-${var.name}"
-  description = "Builder security group for Depot connection ${var.name}"
+  name        = "depot-connection-${var.connection-id}-instance"
+  description = "Security group for Depot connection builder instance"
   vpc_id      = aws_vpc.vpc[0].id
 
   egress {
@@ -135,7 +133,7 @@ resource "aws_security_group" "builder" {
   }
 
   tags = merge(var.tags, {
-    Name = "depot-builder-${var.name}"
+    Name = "depot-connection-${var.connection-id}-instance"
   })
 }
 
@@ -155,8 +153,8 @@ data "aws_ssm_parameter" "arm" {
 
 resource "aws_launch_template" "x86" {
   count         = var.create ? 1 : 0
-  name          = "depot-builder-${var.name}-x86"
-  description   = "Launch template for Depot builder instances"
+  name          = "depot-connection-${var.connection-id}-x86"
+  description   = "Launch template for Depot connection builder instances (x86)"
   ebs_optimized = true
   image_id      = nonsensitive(data.aws_ssm_parameter.x86[0].value)
   instance_type = var.instance-types.x86
@@ -174,12 +172,12 @@ resource "aws_launch_template" "x86" {
   }
 
   iam_instance_profile {
-    arn = aws_iam_instance_profile.builder[0].arn
+    arn = aws_iam_instance_profile.instance[0].arn
   }
 
   network_interfaces {
     associate_public_ip_address = true
-    security_groups             = [aws_security_group.builder[0].id]
+    security_groups             = [aws_security_group.instance[0].id]
   }
 
   placement {
@@ -188,14 +186,14 @@ resource "aws_launch_template" "x86" {
 
   tag_specifications {
     resource_type = "instance"
-    tags          = merge(var.tags, { Name = "depot-builder-${var.name}-x86", "depot.dev" = "managed" })
+    tags          = merge(var.tags, { Name = "depot-connection-${var.connection-id}-x86", "depot.dev" = "managed" })
   }
 }
 
 resource "aws_launch_template" "arm" {
   count         = var.create ? 1 : 0
-  name          = "depot-builder-${var.name}-arm"
-  description   = "Launch template for Depot builder instances"
+  name          = "depot-connection-${var.connection-id}-arm"
+  description   = "Launch template for Depot connection builder instances (arm)"
   ebs_optimized = true
   image_id      = nonsensitive(data.aws_ssm_parameter.arm[0].value)
   instance_type = var.instance-types.arm
@@ -213,12 +211,12 @@ resource "aws_launch_template" "arm" {
   }
 
   iam_instance_profile {
-    arn = aws_iam_instance_profile.builder[0].arn
+    arn = aws_iam_instance_profile.instance[0].arn
   }
 
   network_interfaces {
     associate_public_ip_address = true
-    security_groups             = [aws_security_group.builder[0].id]
+    security_groups             = [aws_security_group.instance[0].id]
   }
 
   placement {
@@ -227,7 +225,7 @@ resource "aws_launch_template" "arm" {
 
   tag_specifications {
     resource_type = "instance"
-    tags          = merge(var.tags, { Name = "depot-builder-${var.name}-arm", "depot.dev" = "managed" })
+    tags          = merge(var.tags, { Name = "depot-connection-${var.connection-id}-arm", "depot.dev" = "managed" })
   }
 }
 
@@ -313,7 +311,7 @@ resource "aws_autoscaling_lifecycle_hook" "arm" {
 
 resource "aws_ecs_cluster" "cloud-agent" {
   count = var.create ? 1 : 0
-  name  = "depot-cloud-agent-${var.name}"
+  name  = "depot-connection-${var.connection-id}"
 }
 
 resource "aws_ecs_cluster_capacity_providers" "cloud-agent" {
@@ -336,7 +334,7 @@ resource "aws_ecs_cluster_capacity_providers" "cloud-agent" {
 
 resource "aws_iam_role" "execution-role" {
   count               = var.create ? 1 : 0
-  name                = "depot-cloud-agent-ecs-execution-role-${var.name}"
+  name                = "depot-connection-${var.connection-id}-ecs-execution-role"
   managed_policy_arns = ["arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"]
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -346,11 +344,22 @@ resource "aws_iam_role" "execution-role" {
       Principal = { Service = "ecs-tasks.amazonaws.com" }
     }]
   })
+  inline_policy {
+    name = "ecs-execution-role"
+    policy = jsonencode({
+      Version = "2012-10-17"
+      Statement = [{
+        Action   = ["ssm:GetParameters"]
+        Effect   = "Allow"
+        Resource = [aws_ssm_parameter.api-token[0].arn]
+      }]
+    })
+  }
 }
 
 resource "aws_iam_role" "cloud-agent" {
   count = var.create ? 1 : 0
-  name  = "depot-cloud-agent-${var.name}"
+  name  = "depot-connection-${var.connection-id}-cloud-agent"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -430,15 +439,22 @@ resource "aws_iam_role" "cloud-agent" {
   }
 }
 
-resource "aws_cloudwatch_log_group" "cloud-agent" {
+resource "aws_cloudwatch_log_group" "connection" {
   count             = var.create ? 1 : 0
-  name              = "depot-cloud-agent-${var.name}"
+  name              = "depot-connection-${var.connection-id}"
   retention_in_days = 7
+}
+
+resource "aws_ssm_parameter" "api-token" {
+  count = var.create ? 1 : 0
+  name  = "depot-connection-${var.connection-id}-api-token"
+  type  = "SecureString"
+  value = var.connection-token
 }
 
 resource "aws_ecs_task_definition" "cloud-agent" {
   count                    = var.create ? 1 : 0
-  family                   = "depot-cloud-agent-${var.name}"
+  family                   = "depot-connection-${var.connection-id}-cloud-agent"
   requires_compatibilities = ["FARGATE"]
   cpu                      = 512
   memory                   = 1024
@@ -452,13 +468,13 @@ resource "aws_ecs_task_definition" "cloud-agent" {
     environment = [
       { name = "CLOUD_AGENT_VERSION", value = local.version },
       { name = "CLOUD_AGENT_CONNECTION_ID", value = var.connection-id },
-      { name = "CLOUD_AGENT_API_TOKEN", value = var.api-token },
+      { name = "CLOUD_AGENT_API_TOKEN", valueFrom = aws_ssm_parameter.api-token[0].arn },
     ]
     logConfiguration = {
       logDriver = "awslogs"
       options = {
         "awslogs-region"        = "${data.aws_region.current.name}"
-        "awslogs-group"         = "${aws_cloudwatch_log_group.cloud-agent[0].name}"
+        "awslogs-group"         = "${aws_cloudwatch_log_group.connection[0].name}"
         "awslogs-stream-prefix" = "cloud-agent"
       }
     }
@@ -467,7 +483,7 @@ resource "aws_ecs_task_definition" "cloud-agent" {
 
 resource "aws_ecs_service" "cloud-agent" {
   count                              = var.create ? 1 : 0
-  name                               = "depot-cloud-agent-${var.name}"
+  name                               = "depot-connection-${var.connection-id}-cloud-agent"
   cluster                            = aws_ecs_cluster.cloud-agent[0].id
   task_definition                    = aws_ecs_task_definition.cloud-agent[0].arn
   desired_count                      = 1
