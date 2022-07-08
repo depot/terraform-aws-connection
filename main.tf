@@ -463,7 +463,7 @@ resource "aws_ecs_service" "cloud-agent" {
   network_configuration {
     security_groups  = [aws_security_group.cloud-agent[0].id]
     subnets          = [aws_subnet.public[0].id]
-    assign_public_ip = false
+    assign_public_ip = true
   }
 
   capacity_provider_strategy {
