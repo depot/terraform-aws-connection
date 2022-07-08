@@ -468,6 +468,8 @@ resource "aws_ecs_task_definition" "cloud-agent" {
     environment = [
       { name = "CLOUD_AGENT_VERSION", value = local.version },
       { name = "CLOUD_AGENT_CONNECTION_ID", value = var.connection-id },
+    ]
+    secrets = [
       { name = "CLOUD_AGENT_API_TOKEN", valueFrom = aws_ssm_parameter.api-token[0].arn },
     ]
     logConfiguration = {
