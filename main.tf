@@ -334,10 +334,23 @@ resource "aws_ecs_cluster_capacity_providers" "cloud-agent" {
   }
 }
 
-resource "aws_iam_role" "cloud-agent" {
+resource "aws_iam_role" "execution-role" {
   count               = var.create ? 1 : 0
-  name                = "depot-cloud-agent-${var.name}"
+  name                = "depot-cloud-agent-ecs-execution-role-${var.name}"
   managed_policy_arns = ["arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"]
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
+      Principal = { Service = "ecs-tasks.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role" "cloud-agent" {
+  count = var.create ? 1 : 0
+  name  = "depot-cloud-agent-${var.name}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -430,7 +443,8 @@ resource "aws_ecs_task_definition" "cloud-agent" {
   cpu                      = 512
   memory                   = 1024
   network_mode             = "awsvpc"
-  execution_role_arn       = aws_iam_role.cloud-agent[0].arn
+  execution_role_arn       = aws_iam_role.execution-role[0].arn
+  tasktask_role_arn        = aws_iam_role.cloud-agent[0].arn
   container_definitions = jsonencode([{
     name      = "cloud-agent"
     image     = "ghcr.io/depot/cloud-agent:main"
