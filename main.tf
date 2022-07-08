@@ -444,7 +444,7 @@ resource "aws_ecs_task_definition" "cloud-agent" {
   memory                   = 1024
   network_mode             = "awsvpc"
   execution_role_arn       = aws_iam_role.execution-role[0].arn
-  tasktask_role_arn        = aws_iam_role.cloud-agent[0].arn
+  task_role_arn            = aws_iam_role.cloud-agent[0].arn
   container_definitions = jsonencode([{
     name      = "cloud-agent"
     image     = "ghcr.io/depot/cloud-agent:main"
