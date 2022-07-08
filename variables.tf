@@ -15,9 +15,14 @@ variable "name" {
   description = "Name of the Depot connection"
 }
 
-variable "external-id" {
+variable "connection-id" {
   type        = string
-  description = "External ID for the Depot connection (provided in the Depot console)"
+  description = "ID for the Depot connection (provided in the Depot console)"
+}
+
+variable "api-token" {
+  type        = string
+  description = "API token for the Depot connection (provided in the Depot console)"
 }
 
 variable "instance-types" {
