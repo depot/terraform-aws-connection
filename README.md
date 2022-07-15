@@ -28,10 +28,8 @@ module "connection" {
 
 ## Outputs
 
-| Name                                                                                                           | Description                                        | Value       | Sensitive |
-| -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ----------- | :-------: |
-| <a name="output_autoscaling-group-arn-arm"></a> [autoscaling-group-arn-arm](#output_autoscaling-group-arn-arm) | Autoscaling group ARN for the ARM Depot connection | `"ASG-ARN"` |    no     |
-| <a name="output_autoscaling-group-arn-x86"></a> [autoscaling-group-arn-x86](#output_autoscaling-group-arn-x86) | Autoscaling group ARN for the x86 Depot connection | `"ASG-ARN"` |    no     |
-| <a name="output_vpc-id"></a> [vpc-id](#output_vpc-id)                                                          | Builder VPC ID                                     | `"VPC-ID"`  |    no     |
+| Name                                                  | Description    | Value      | Sensitive |
+| ----------------------------------------------------- | -------------- | ---------- | :-------: |
+| <a name="output_vpc-id"></a> [vpc-id](#output_vpc-id) | Builder VPC ID | `"VPC-ID"` |    no     |
 
 <!-- END_TF_DOCS -->

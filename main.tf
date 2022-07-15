@@ -73,26 +73,6 @@ resource "aws_iam_instance_profile" "instance" {
   role  = aws_iam_role.instance[0].name
 }
 
-resource "aws_iam_policy" "instance" {
-  count       = var.create ? 1 : 0
-  name        = "depot-connection-${var.connection-id}-instance"
-  description = "IAM policy for Depot builder instance"
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action   = ["autoscaling:CompleteLifecycleAction"]
-      Effect   = "Allow"
-      Resource = [aws_autoscaling_group.x86[0].arn, aws_autoscaling_group.arm[0].arn]
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "instance" {
-  count      = var.create ? 1 : 0
-  role       = aws_iam_role.instance[0].name
-  policy_arn = aws_iam_policy.instance[0].arn
-}
-
 resource "aws_iam_role_policy_attachment" "instance-ssm" {
   count      = var.create && var.allow-ssm-access ? 1 : 0
   role       = aws_iam_role.instance[0].name
@@ -186,7 +166,7 @@ resource "aws_launch_template" "x86" {
 
   tag_specifications {
     resource_type = "instance"
-    tags          = merge(var.tags, { Name = "depot-connection-${var.connection-id}-x86", "depot.dev" = "managed" })
+    tags          = merge(var.tags, { Name = "depot-connection-${var.connection-id}-x86", "depot.dev" = "managed", "depot-connection" = var.connection-id })
   }
 }
 
@@ -225,86 +205,8 @@ resource "aws_launch_template" "arm" {
 
   tag_specifications {
     resource_type = "instance"
-    tags          = merge(var.tags, { Name = "depot-connection-${var.connection-id}-arm", "depot.dev" = "managed" })
+    tags          = merge(var.tags, { Name = "depot-connection-${var.connection-id}-arm", "depot.dev" = "managed", "depot-connection" = var.connection-id })
   }
-}
-
-# Autoscaling Groups
-
-resource "aws_autoscaling_group" "x86" {
-  count               = var.create ? 1 : 0
-  name                = local.asg-name-x86
-  max_size            = 0
-  min_size            = 0
-  desired_capacity    = 0
-  vpc_zone_identifier = [aws_subnet.public[0].id]
-
-  launch_template {
-    id      = aws_launch_template.x86[0].id
-    version = "$Latest"
-  }
-
-  warm_pool {
-    pool_state = "Stopped"
-    min_size   = 0
-  }
-
-  tag {
-    key                 = "depot-connection"
-    value               = var.connection-id
-    propagate_at_launch = false
-  }
-
-  lifecycle {
-    # Depot will manage these values
-    ignore_changes = [max_size, min_size, desired_capacity, warm_pool[0].min_size]
-  }
-}
-
-resource "aws_autoscaling_lifecycle_hook" "x86" {
-  count                  = var.create ? 1 : 0
-  name                   = "launching"
-  autoscaling_group_name = aws_autoscaling_group.x86[0].name
-  lifecycle_transition   = "autoscaling:EC2_INSTANCE_LAUNCHING"
-  heartbeat_timeout      = 600 # 10 minutes
-}
-
-resource "aws_autoscaling_group" "arm" {
-  count               = var.create ? 1 : 0
-  name                = local.asg-name-arm
-  max_size            = 0
-  min_size            = 0
-  desired_capacity    = 0
-  vpc_zone_identifier = [aws_subnet.public[0].id]
-
-  launch_template {
-    id      = aws_launch_template.arm[0].id
-    version = "$Latest"
-  }
-
-  warm_pool {
-    pool_state = "Stopped"
-    min_size   = 0
-  }
-
-  tag {
-    key                 = "depot-connection"
-    value               = var.connection-id
-    propagate_at_launch = false
-  }
-
-  lifecycle {
-    # Depot will manage these values
-    ignore_changes = [max_size, min_size, desired_capacity, warm_pool[0].min_size]
-  }
-}
-
-resource "aws_autoscaling_lifecycle_hook" "arm" {
-  count                  = var.create ? 1 : 0
-  name                   = "launching"
-  autoscaling_group_name = aws_autoscaling_group.arm[0].name
-  lifecycle_transition   = "autoscaling:EC2_INSTANCE_LAUNCHING"
-  heartbeat_timeout      = 600 # 10 minutes
 }
 
 # cloud-agent ECS Task
@@ -375,11 +277,7 @@ resource "aws_iam_role" "cloud-agent" {
       Statement = [
         {
           Action = [
-            "autoscaling:DescribeAutoScalingGroups",
-            "autoscaling:DescribeAutoScalingInstances",
-            "autoscaling:DescribeInstanceRefreshes",
-            "autoscaling:DescribeLifecycleHooks",
-            "autoscaling:DescribeWarmPool",
+            "ec2:DescribeInstances",
             "ec2:DescribeVolumes",
           ]
           Effect   = "Allow"
@@ -387,40 +285,36 @@ resource "aws_iam_role" "cloud-agent" {
         },
 
         {
-          Action = [
-            "autoscaling:CompleteLifecycleAction",
-            "autoscaling:EnterStandby",
-            "autoscaling:ExitStandby",
-            "autoscaling:PutWarmPool",
-            "autoscaling:RecordLifecycleActionHeartbeat",
-            "autoscaling:SetDesiredCapacity",
-            "autoscaling:SetInstanceHealth",
-            "autoscaling:TerminateInstanceInAutoScalingGroup",
-            "autoscaling:UpdateAutoScalingGroup",
-          ]
-          Effect   = "Allow"
-          Resource = [aws_autoscaling_group.x86[0].arn, aws_autoscaling_group.arm[0].arn]
-        },
-
-        {
           Action    = ["ec2:CreateVolume"]
           Effect    = "Allow"
           Resource  = "*",
-          Condition = { StringEquals = { "aws:RequestTag/depot.dev" = "managed" } }
+          Condition = { StringEquals = { "aws:RequestTag/depot-connection" = var.connection-id } }
+        },
+
+        {
+          Action   = ["ec2:RunInstances"]
+          Effect   = "Allow"
+          Resource = "*",
+          Condition = {
+            StringEquals = {
+              "aws:RequestTag/depot-connection" = var.connection-id,
+              "ec2:LaunchTemplate"              = [aws_launch_template.x86[0].arn, aws_launch_template.arm[0].arn],
+            }
+          }
         },
 
         {
           Action    = ["ec2:DeleteVolume", "ec2:TerminateInstances"]
           Effect    = "Allow"
           Resource  = "*"
-          Condition = { StringEquals = { "aws:ResourceTag/depot.dev" = "managed" } }
+          Condition = { StringEquals = { "aws:ResourceTag/depot-connection" = var.connection-id } }
         },
 
         {
           Action    = ["ec2:AttachVolume", "ec2:DetachVolume"],
           Effect    = "Allow",
           Resource  = ["arn:aws:ec2:*:*:instance/*", "arn:aws:ec2:*:*:volume/*"],
-          Condition = { StringEquals = { "aws:ResourceTag/depot.dev" = "managed" } }
+          Condition = { StringEquals = { "aws:ResourceTag/depot-connection" = var.connection-id } }
         },
 
         {
@@ -429,8 +323,8 @@ resource "aws_iam_role" "cloud-agent" {
           Resource = "arn:aws:ec2:*:*:*/*",
           Condition = {
             StringEquals = {
-              "aws:RequestTag/depot.dev" = "managed",
-              "ec2:CreateAction"         = ["CreateVolume", "RunInstances"],
+              "aws:RequestTag/depot-connection" = var.connection-id,
+              "ec2:CreateAction"                = ["CreateVolume", "RunInstances"],
             }
           }
         },
@@ -466,8 +360,11 @@ resource "aws_ecs_task_definition" "cloud-agent" {
     image     = "ghcr.io/depot/cloud-agent:main"
     essential = true
     environment = [
+      { name = "AWS_AVAILABILITY_ZONE", value = var.availability-zone },
       { name = "CLOUD_AGENT_VERSION", value = local.version },
       { name = "CLOUD_AGENT_CONNECTION_ID", value = var.connection-id },
+      { name = "LAUNCH_TEMPLATE_X86", value = aws_launch_template.x86[0].id },
+      { name = "LAUNCH_TEMPLATE_ARM", value = aws_launch_template.arm[0].id },
     ]
     secrets = [
       { name = "CLOUD_AGENT_API_TOKEN", valueFrom = aws_ssm_parameter.api-token[0].arn },
