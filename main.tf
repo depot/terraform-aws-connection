@@ -139,7 +139,6 @@ resource "aws_launch_template" "x86" {
   image_id      = nonsensitive(data.aws_ssm_parameter.x86[0].value)
   instance_type = var.instance-types.x86
   tags          = var.tags
-  user_data     = base64encode(templatefile("${path.module}/user-data.sh.tftpl", { asg_name = local.asg-name-x86 }))
 
   block_device_mappings {
     device_name = "/dev/xvda"
@@ -166,7 +165,7 @@ resource "aws_launch_template" "x86" {
 
   tag_specifications {
     resource_type = "instance"
-    tags          = merge(var.tags, { Name = "depot-connection-${var.connection-id}-x86", "depot.dev" = "managed", "depot-connection" = var.connection-id })
+    tags          = merge(var.tags, { Name = "depot-connection-${var.connection-id}-x86", "depot-connection" = var.connection-id })
   }
 }
 
@@ -178,7 +177,6 @@ resource "aws_launch_template" "arm" {
   image_id      = nonsensitive(data.aws_ssm_parameter.arm[0].value)
   instance_type = var.instance-types.arm
   tags          = var.tags
-  user_data     = base64encode(templatefile("${path.module}/user-data.sh.tftpl", { asg_name = local.asg-name-arm }))
 
   block_device_mappings {
     device_name = "/dev/xvda"
@@ -205,7 +203,7 @@ resource "aws_launch_template" "arm" {
 
   tag_specifications {
     resource_type = "instance"
-    tags          = merge(var.tags, { Name = "depot-connection-${var.connection-id}-arm", "depot.dev" = "managed", "depot-connection" = var.connection-id })
+    tags          = merge(var.tags, { Name = "depot-connection-${var.connection-id}-arm", "depot-connection" = var.connection-id })
   }
 }
 
