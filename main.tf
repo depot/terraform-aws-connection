@@ -321,7 +321,7 @@ resource "aws_iam_role" "cloud-agent" {
         },
 
         {
-          Action    = ["ec2:DeleteVolume", "ec2:TerminateInstances"]
+          Action    = ["ec2:DeleteVolume", "ec2:StartInstances", "ec2:StopInstances", "ec2:TerminateInstances"]
           Effect    = "Allow"
           Resource  = "*"
           Condition = { StringEquals = { "aws:ResourceTag/depot-connection" = var.connection-id } }
