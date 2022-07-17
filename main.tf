@@ -5,9 +5,7 @@ data "aws_region" "current" {}
 # Locals
 
 locals {
-  asg-name-x86 = "depot-connection-${var.connection-id}-x86"
-  asg-name-arm = "depot-connection-${var.connection-id}-arm"
-  version      = "0.0.2"
+  version = "0.0.2"
 }
 
 # VPC
@@ -139,6 +137,7 @@ resource "aws_launch_template" "x86" {
   image_id      = nonsensitive(data.aws_ssm_parameter.x86[0].value)
   instance_type = var.instance-types.x86
   tags          = var.tags
+  user_data     = base64encode(templatefile("${path.module}/user-data.sh.tftpl", {}))
 
   block_device_mappings {
     device_name = "/dev/xvda"
@@ -177,6 +176,7 @@ resource "aws_launch_template" "arm" {
   image_id      = nonsensitive(data.aws_ssm_parameter.arm[0].value)
   instance_type = var.instance-types.arm
   tags          = var.tags
+  user_data     = base64encode(templatefile("${path.module}/user-data.sh.tftpl", {}))
 
   block_device_mappings {
     device_name = "/dev/xvda"
