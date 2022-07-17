@@ -130,14 +130,15 @@ data "aws_ssm_parameter" "arm" {
 # Launch Templates
 
 resource "aws_launch_template" "x86" {
-  count         = var.create ? 1 : 0
-  name          = "depot-connection-${var.connection-id}-x86"
-  description   = "Launch template for Depot connection builder instances (x86)"
-  ebs_optimized = true
-  image_id      = nonsensitive(data.aws_ssm_parameter.x86[0].value)
-  instance_type = var.instance-types.x86
-  tags          = var.tags
-  user_data     = base64encode(templatefile("${path.module}/user-data.sh.tftpl", {}))
+  count                  = var.create ? 1 : 0
+  name                   = "depot-connection-${var.connection-id}-x86"
+  description            = "Launch template for Depot connection builder instances (x86)"
+  ebs_optimized          = true
+  image_id               = nonsensitive(data.aws_ssm_parameter.x86[0].value)
+  instance_type          = var.instance-types.x86
+  tags                   = var.tags
+  user_data              = base64encode(templatefile("${path.module}/user-data.sh.tftpl", {}))
+  update_default_version = true
 
   block_device_mappings {
     device_name = "/dev/xvda"
@@ -170,14 +171,15 @@ resource "aws_launch_template" "x86" {
 }
 
 resource "aws_launch_template" "arm" {
-  count         = var.create ? 1 : 0
-  name          = "depot-connection-${var.connection-id}-arm"
-  description   = "Launch template for Depot connection builder instances (arm)"
-  ebs_optimized = true
-  image_id      = nonsensitive(data.aws_ssm_parameter.arm[0].value)
-  instance_type = var.instance-types.arm
-  tags          = var.tags
-  user_data     = base64encode(templatefile("${path.module}/user-data.sh.tftpl", {}))
+  count                  = var.create ? 1 : 0
+  name                   = "depot-connection-${var.connection-id}-arm"
+  description            = "Launch template for Depot connection builder instances (arm)"
+  ebs_optimized          = true
+  image_id               = nonsensitive(data.aws_ssm_parameter.arm[0].value)
+  instance_type          = var.instance-types.arm
+  tags                   = var.tags
+  user_data              = base64encode(templatefile("${path.module}/user-data.sh.tftpl", {}))
+  update_default_version = true
 
   block_device_mappings {
     device_name = "/dev/xvda"
