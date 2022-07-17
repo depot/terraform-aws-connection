@@ -1,5 +1,6 @@
 # Data providers
 
+data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 # Locals
@@ -294,9 +295,23 @@ resource "aws_iam_role" "cloud-agent" {
         },
 
         {
+          Action = ["ec2:RunInstances"]
+          Effect = "Allow"
+          Resource = [
+            aws_launch_template.arm[0].arn,
+            aws_launch_template.x86[0].arn,
+            aws_security_group.instance[0].arn,
+            aws_subnet.public[0].arn,
+            "arn:aws:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:network-interface/*",
+            "arn:aws:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:volume/*",
+            "arn:aws:ec2:${data.aws_region.current.name}::image/*",
+          ]
+        },
+
+        {
           Action   = ["ec2:RunInstances"]
           Effect   = "Allow"
-          Resource = "*",
+          Resource = "arn:aws:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:instance/*",
           Condition = {
             StringEquals = {
               "aws:RequestTag/depot-connection" = var.connection-id,
