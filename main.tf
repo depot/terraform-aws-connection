@@ -330,6 +330,12 @@ resource "aws_iam_role" "cloud-agent" {
             }
           }
         },
+
+        {
+          Action   = ["iam:PassRole"]
+          Effect   = "Allow"
+          Resource = aws_iam_role.instance[0].arn
+        },
       ]
     })
   }
