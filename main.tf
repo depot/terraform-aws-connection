@@ -156,6 +156,7 @@ resource "aws_launch_template" "x86" {
   network_interfaces {
     associate_public_ip_address = true
     security_groups             = [aws_security_group.instance[0].id]
+    subnet_id                   = aws_subnet.public[0].id
   }
 
   placement {
@@ -195,6 +196,7 @@ resource "aws_launch_template" "arm" {
   network_interfaces {
     associate_public_ip_address = true
     security_groups             = [aws_security_group.instance[0].id]
+    subnet_id                   = aws_subnet.public[0].id
   }
 
   placement {
