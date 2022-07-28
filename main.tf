@@ -414,6 +414,7 @@ resource "aws_ecs_task_definition" "cloud-agent" {
       { name = "AWS_AVAILABILITY_ZONE", value = var.availability-zone },
       { name = "CLOUD_AGENT_VERSION", value = local.version },
       { name = "CLOUD_AGENT_CONNECTION_ID", value = var.connection-id },
+      { name = "CLOUD_AGENT_SUBNET_ID", value = aws_subnet.public[0].id },
       { name = "CLOUD_AGENT_SG_OPEN", value = aws_security_group.instance-open[0].arn },
       { name = "CLOUD_AGENT_SG_CLOSED", value = aws_security_group.instance-closed[0].arn },
       { name = "LAUNCH_TEMPLATE_X86", value = aws_launch_template.x86[0].id },
