@@ -98,9 +98,34 @@ resource "aws_security_group" "cloud-agent" {
   })
 }
 
-resource "aws_security_group" "instance" {
+resource "aws_security_group" "instance-open" {
   count       = var.create ? 1 : 0
-  name        = "depot-connection-${var.connection-id}-instance"
+  name        = "depot-connection-${var.connection-id}-instance-open"
+  description = "Security group for Depot connection builder instance"
+  vpc_id      = aws_vpc.vpc[0].id
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(var.tags, {
+    Name = "depot-connection-${var.connection-id}-instance-open"
+  })
+}
+
+resource "aws_security_group" "instance-closed" {
+  count       = var.create ? 1 : 0
+  name        = "depot-connection-${var.connection-id}-instance-closed"
   description = "Security group for Depot connection builder instance"
   vpc_id      = aws_vpc.vpc[0].id
 
@@ -112,7 +137,7 @@ resource "aws_security_group" "instance" {
   }
 
   tags = merge(var.tags, {
-    Name = "depot-connection-${var.connection-id}-instance"
+    Name = "depot-connection-${var.connection-id}-instance-closed"
   })
 }
 
@@ -156,8 +181,9 @@ resource "aws_launch_template" "x86" {
   }
 
   network_interfaces {
+    device_index                = 0
     associate_public_ip_address = true
-    security_groups             = [aws_security_group.instance[0].id]
+    security_groups             = [aws_security_group.instance-closed[0].id]
     subnet_id                   = aws_subnet.public[0].id
   }
 
@@ -197,8 +223,9 @@ resource "aws_launch_template" "arm" {
   }
 
   network_interfaces {
+    device_index                = 0
     associate_public_ip_address = true
-    security_groups             = [aws_security_group.instance[0].id]
+    security_groups             = [aws_security_group.instance-closed[0].id]
     subnet_id                   = aws_subnet.public[0].id
   }
 
@@ -300,7 +327,8 @@ resource "aws_iam_role" "cloud-agent" {
           Resource = [
             aws_launch_template.arm[0].arn,
             aws_launch_template.x86[0].arn,
-            aws_security_group.instance[0].arn,
+            aws_security_group.instance-open[0].arn,
+            aws_security_group.instance-closed[0].arn,
             aws_subnet.public[0].arn,
             "arn:aws:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:network-interface/*",
             "arn:aws:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:volume/*",
@@ -386,6 +414,8 @@ resource "aws_ecs_task_definition" "cloud-agent" {
       { name = "AWS_AVAILABILITY_ZONE", value = var.availability-zone },
       { name = "CLOUD_AGENT_VERSION", value = local.version },
       { name = "CLOUD_AGENT_CONNECTION_ID", value = var.connection-id },
+      { name = "CLOUD_AGENT_SG_OPEN", value = aws_security_group.instance-open[0].arn },
+      { name = "CLOUD_AGENT_SG_CLOSED", value = aws_security_group.instance-closed[0].arn },
       { name = "LAUNCH_TEMPLATE_X86", value = aws_launch_template.x86[0].id },
       { name = "LAUNCH_TEMPLATE_ARM", value = aws_launch_template.arm[0].id },
     ]
