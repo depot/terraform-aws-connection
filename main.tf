@@ -163,7 +163,7 @@ resource "aws_launch_template" "x86" {
   image_id               = nonsensitive(data.aws_ssm_parameter.x86[0].value)
   instance_type          = var.instance-types.x86
   tags                   = var.tags
-  user_data              = base64encode(templatefile("${path.module}/user-data.sh.tftpl", {}))
+  user_data              = base64encode(templatefile("${path.module}/user-data.sh.tftpl", { DEPOT_CLOUD_CONNECTION_ID = var.connection-id }))
   update_default_version = true
 
   block_device_mappings {
@@ -205,7 +205,7 @@ resource "aws_launch_template" "arm" {
   image_id               = nonsensitive(data.aws_ssm_parameter.arm[0].value)
   instance_type          = var.instance-types.arm
   tags                   = var.tags
-  user_data              = base64encode(templatefile("${path.module}/user-data.sh.tftpl", {}))
+  user_data              = base64encode(templatefile("${path.module}/user-data.sh.tftpl", { DEPOT_CLOUD_CONNECTION_ID = var.connection-id }))
   update_default_version = true
 
   block_device_mappings {

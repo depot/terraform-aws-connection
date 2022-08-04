@@ -17,7 +17,7 @@ Type=simple
 ExecStart=/usr/bin/machine-agent listen
 Restart=always
 RestartSec=5
-Environment="ASG_NAME=xxx"
+Environment="DEPOT_CLOUD_CONNECTION_ID=${DEPOT_CLOUD_CONNECTION_ID}"
 [Install]
 WantedBy=multi-user.target
 EOF
