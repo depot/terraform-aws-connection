@@ -18,6 +18,12 @@ variable "availability-zone" {
 
 // Optional
 
+variable "cloud-agent-version" {
+  type        = string
+  description = "Version tag for ghcr.io/depot/cloud-agent container"
+  default     = "1.0.0"
+}
+
 variable "create" {
   type        = bool
   description = "Controls if Depot connection resources should be created"

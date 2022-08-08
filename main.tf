@@ -6,7 +6,7 @@ data "aws_region" "current" {}
 # Locals
 
 locals {
-  version = "0.0.2"
+  version = "0.1.0"
 }
 
 # VPC
@@ -98,10 +98,10 @@ resource "aws_security_group" "cloud-agent" {
   })
 }
 
-resource "aws_security_group" "instance-open" {
+resource "aws_security_group" "instance-buildkit" {
   count       = var.create ? 1 : 0
-  name        = "depot-connection-${var.connection-id}-instance-open"
-  description = "Security group for Depot connection builder instance"
+  name        = "depot-connection-${var.connection-id}-instance-buildkit"
+  description = "Security group for Depot connection instance"
   vpc_id      = aws_vpc.vpc[0].id
 
   ingress {
@@ -119,14 +119,14 @@ resource "aws_security_group" "instance-open" {
   }
 
   tags = merge(var.tags, {
-    Name = "depot-connection-${var.connection-id}-instance-open"
+    Name = "depot-connection-${var.connection-id}-instance-buildkit"
   })
 }
 
-resource "aws_security_group" "instance-closed" {
+resource "aws_security_group" "instance-default" {
   count       = var.create ? 1 : 0
-  name        = "depot-connection-${var.connection-id}-instance-closed"
-  description = "Security group for Depot connection builder instance"
+  name        = "depot-connection-${var.connection-id}-instance-default"
+  description = "Security group for Depot connection instance"
   vpc_id      = aws_vpc.vpc[0].id
 
   egress {
@@ -137,20 +137,8 @@ resource "aws_security_group" "instance-closed" {
   }
 
   tags = merge(var.tags, {
-    Name = "depot-connection-${var.connection-id}-instance-closed"
+    Name = "depot-connection-${var.connection-id}-instance-default"
   })
-}
-
-# AMIs
-
-data "aws_ssm_parameter" "x86" {
-  count = var.create ? 1 : 0
-  name  = "/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-x86_64-gp2"
-}
-
-data "aws_ssm_parameter" "arm" {
-  count = var.create ? 1 : 0
-  name  = "/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-arm64-gp2"
 }
 
 # Launch Templates
@@ -160,7 +148,6 @@ resource "aws_launch_template" "x86" {
   name                   = "depot-connection-${var.connection-id}-x86"
   description            = "Launch template for Depot connection builder instances (x86)"
   ebs_optimized          = true
-  image_id               = nonsensitive(data.aws_ssm_parameter.x86[0].value)
   instance_type          = var.instance-types.x86
   tags                   = var.tags
   user_data              = base64encode(templatefile("${path.module}/user-data.sh.tftpl", { DEPOT_CLOUD_CONNECTION_ID = var.connection-id }))
@@ -183,17 +170,12 @@ resource "aws_launch_template" "x86" {
   network_interfaces {
     device_index                = 0
     associate_public_ip_address = true
-    security_groups             = [aws_security_group.instance-closed[0].id]
+    security_groups             = [aws_security_group.instance-default[0].id]
     subnet_id                   = aws_subnet.public[0].id
   }
 
   placement {
     availability_zone = var.availability-zone
-  }
-
-  tag_specifications {
-    resource_type = "instance"
-    tags          = merge(var.tags, { Name = "depot-connection-${var.connection-id}-x86", "depot-connection" = var.connection-id })
   }
 }
 
@@ -202,7 +184,6 @@ resource "aws_launch_template" "arm" {
   name                   = "depot-connection-${var.connection-id}-arm"
   description            = "Launch template for Depot connection builder instances (arm)"
   ebs_optimized          = true
-  image_id               = nonsensitive(data.aws_ssm_parameter.arm[0].value)
   instance_type          = var.instance-types.arm
   tags                   = var.tags
   user_data              = base64encode(templatefile("${path.module}/user-data.sh.tftpl", { DEPOT_CLOUD_CONNECTION_ID = var.connection-id }))
@@ -225,17 +206,12 @@ resource "aws_launch_template" "arm" {
   network_interfaces {
     device_index                = 0
     associate_public_ip_address = true
-    security_groups             = [aws_security_group.instance-closed[0].id]
+    security_groups             = [aws_security_group.instance-default[0].id]
     subnet_id                   = aws_subnet.public[0].id
   }
 
   placement {
     availability_zone = var.availability-zone
-  }
-
-  tag_specifications {
-    resource_type = "instance"
-    tags          = merge(var.tags, { Name = "depot-connection-${var.connection-id}-arm", "depot-connection" = var.connection-id })
   }
 }
 
@@ -283,7 +259,7 @@ resource "aws_iam_role" "execution-role" {
       Statement = [{
         Action   = ["ssm:GetParameters"]
         Effect   = "Allow"
-        Resource = [aws_ssm_parameter.api-token[0].arn]
+        Resource = [aws_ssm_parameter.connection-token[0].arn]
       }]
     })
   }
@@ -327,8 +303,8 @@ resource "aws_iam_role" "cloud-agent" {
           Resource = [
             aws_launch_template.arm[0].arn,
             aws_launch_template.x86[0].arn,
-            aws_security_group.instance-open[0].arn,
-            aws_security_group.instance-closed[0].arn,
+            aws_security_group.instance-buildkit[0].arn,
+            aws_security_group.instance-default[0].arn,
             aws_subnet.public[0].arn,
             "arn:aws:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:network-interface/*",
             "arn:aws:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:volume/*",
@@ -390,9 +366,9 @@ resource "aws_cloudwatch_log_group" "connection" {
   retention_in_days = 7
 }
 
-resource "aws_ssm_parameter" "api-token" {
+resource "aws_ssm_parameter" "connection-token" {
   count = var.create ? 1 : 0
-  name  = "depot-connection-${var.connection-id}-api-token"
+  name  = "depot-connection-${var.connection-id}-connection-token"
   type  = "SecureString"
   value = var.connection-token
 }
@@ -408,20 +384,20 @@ resource "aws_ecs_task_definition" "cloud-agent" {
   task_role_arn            = aws_iam_role.cloud-agent[0].arn
   container_definitions = jsonencode([{
     name      = "cloud-agent"
-    image     = "ghcr.io/depot/cloud-agent:main"
+    image     = "ghcr.io/depot/cloud-agent:${var.cloud-agent-version}"
     essential = true
     environment = [
-      { name = "AWS_AVAILABILITY_ZONE", value = var.availability-zone },
-      { name = "CLOUD_AGENT_VERSION", value = local.version },
+      { name = "CLOUD_AGENT_AWS_AVAILABILITY_ZONE", value = var.availability-zone },
+      { name = "CLOUD_AGENT_AWS_LAUNCH_TEMPLATE_ARM", value = aws_launch_template.arm[0].id },
+      { name = "CLOUD_AGENT_AWS_LAUNCH_TEMPLATE_X86", value = aws_launch_template.x86[0].id },
+      { name = "CLOUD_AGENT_AWS_SG_BUILDKIT", value = aws_security_group.instance-buildkit[0].id },
+      { name = "CLOUD_AGENT_AWS_SG_DEFAULT", value = aws_security_group.instance-default[0].id },
+      { name = "CLOUD_AGENT_AWS_SUBNET_ID", value = aws_subnet.public[0].id },
       { name = "CLOUD_AGENT_CONNECTION_ID", value = var.connection-id },
-      { name = "CLOUD_AGENT_SUBNET_ID", value = aws_subnet.public[0].id },
-      { name = "CLOUD_AGENT_SG_OPEN", value = aws_security_group.instance-open[0].id },
-      { name = "CLOUD_AGENT_SG_CLOSED", value = aws_security_group.instance-closed[0].id },
-      { name = "LAUNCH_TEMPLATE_X86", value = aws_launch_template.x86[0].id },
-      { name = "LAUNCH_TEMPLATE_ARM", value = aws_launch_template.arm[0].id },
+      { name = "CLOUD_AGENT_TF_MODULE_VERSION", value = local.version },
     ]
     secrets = [
-      { name = "CLOUD_AGENT_API_TOKEN", valueFrom = aws_ssm_parameter.api-token[0].arn },
+      { name = "CLOUD_AGENT_CONNECTION_TOKEN", valueFrom = aws_ssm_parameter.connection-token[0].arn },
     ]
     logConfiguration = {
       logDriver = "awslogs"
@@ -460,8 +436,4 @@ resource "aws_ecs_service" "cloud-agent" {
     base              = 0
     weight            = 0
   }
-
-  # lifecycle {
-  #   ignore_changes = [task_definition, desired_count]
-  # }
 }

@@ -14,7 +14,7 @@ After=network-online.target
 Requires=network-online.target
 [Service]
 Type=simple
-ExecStart=/usr/bin/machine-agent listen
+ExecStart=/usr/bin/machine-agent start
 Restart=always
 RestartSec=5
 Environment="DEPOT_CLOUD_CONNECTION_ID=${DEPOT_CLOUD_CONNECTION_ID}"

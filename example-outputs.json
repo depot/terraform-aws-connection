@@ -1,18 +1,13 @@
 {
-  "role-arn": {
+  "instance-role-arn": {
     "sensitive": false,
     "type": "string",
     "value": "ROLE-ARN"
   },
-  "autoscaling-group-arn-arm": {
+  "instance-role-id": {
     "sensitive": false,
     "type": "string",
-    "value": "ASG-ARN"
-  },
-  "autoscaling-group-arn-x86": {
-    "sensitive": false,
-    "type": "string",
-    "value": "ASG-ARN"
+    "value": "ROLE-ID"
   },
   "vpc-id": {
     "sensitive": false,
