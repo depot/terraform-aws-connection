@@ -395,6 +395,9 @@ resource "aws_ecs_task_definition" "cloud-agent" {
       { name = "CLOUD_AGENT_AWS_SUBNET_ID", value = aws_subnet.public[0].id },
       { name = "CLOUD_AGENT_CONNECTION_ID", value = var.connection-id },
       { name = "CLOUD_AGENT_TF_MODULE_VERSION", value = local.version },
+
+      # This environment variable is unused, but causes ECS to redeploy if the connection token changes
+      { name = "_CLOUD_AGENT_CONNECTION_TOKEN_HASH", value = sha256(var.connection-token) },
     ]
     secrets = [
       { name = "CLOUD_AGENT_CONNECTION_TOKEN", valueFrom = aws_ssm_parameter.connection-token[0].arn },
