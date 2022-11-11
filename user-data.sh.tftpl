@@ -3,7 +3,7 @@ set -e
 exec > >(tee /var/log/user-data.log | logger -t user-data -s 2>/dev/console) 2>&1
 
 # Install latest machine-agent
-wget -O /tmp/machine-agent.tar.gz "https://depot.dev/api/machine-agent/download/linux/$(uname -m)/latest"
+wget -O /tmp/machine-agent.tar.gz "https://dl.depot.dev/machine-agent/download/linux/$(uname -m)/latest"
 tar -zxf /tmp/machine-agent.tar.gz --strip-components=1 --directory /usr/bin bin/machine-agent
 /usr/bin/machine-agent --version
 
