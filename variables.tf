@@ -21,7 +21,7 @@ variable "availability-zone" {
 variable "cloud-agent-version" {
   type        = string
   description = "Version tag for ghcr.io/depot/cloud-agent container"
-  default     = "2.2.0"
+  default     = "2.2.2"
 }
 
 variable "create" {
