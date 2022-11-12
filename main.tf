@@ -6,7 +6,7 @@ data "aws_region" "current" {}
 # Locals
 
 locals {
-  version = "1.0.0"
+  version = "1.1.0"
 }
 
 # VPC
