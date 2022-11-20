@@ -6,7 +6,8 @@ data "aws_region" "current" {}
 # Locals
 
 locals {
-  version = "1.1.1"
+  version      = "1.1.1"
+  service-name = "depot-connection-${var.connection-id}-cloud-agent"
 }
 
 # VPC
@@ -351,6 +352,13 @@ resource "aws_iam_role" "cloud-agent" {
         },
 
         {
+          Action    = ["ecs:ListTasks", "ecs:DescribeTasks", "ecs:StopTask"],
+          Effect    = "Allow",
+          Resource  = ["*"],
+          Condition = { ArnEquals = { "ecs:cluster" = aws_ecs_cluster.cloud-agent[0].arn } }
+        },
+
+        {
           Action   = ["iam:PassRole"]
           Effect   = "Allow"
           Resource = aws_iam_role.instance[0].arn
@@ -393,7 +401,9 @@ resource "aws_ecs_task_definition" "cloud-agent" {
       { name = "CLOUD_AGENT_AWS_SG_BUILDKIT", value = aws_security_group.instance-buildkit[0].id },
       { name = "CLOUD_AGENT_AWS_SG_DEFAULT", value = aws_security_group.instance-default[0].id },
       { name = "CLOUD_AGENT_AWS_SUBNET_ID", value = aws_subnet.public[0].id },
+      { name = "CLOUD_AGENT_CLUSTER_ARN", value = aws_ecs_cluster.cloud-agent[0].arn },
       { name = "CLOUD_AGENT_CONNECTION_ID", value = var.connection-id },
+      { name = "CLOUD_AGENT_SERVICE_NAME", value = local.service-name },
       { name = "CLOUD_AGENT_TF_MODULE_VERSION", value = local.version },
 
       # This environment variable is unused, but causes ECS to redeploy if the connection token changes
@@ -415,7 +425,7 @@ resource "aws_ecs_task_definition" "cloud-agent" {
 
 resource "aws_ecs_service" "cloud-agent" {
   count                              = var.create ? 1 : 0
-  name                               = "depot-connection-${var.connection-id}-cloud-agent"
+  name                               = local.service-name
   cluster                            = aws_ecs_cluster.cloud-agent[0].id
   task_definition                    = aws_ecs_task_definition.cloud-agent[0].arn
   desired_count                      = 1
