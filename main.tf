@@ -469,7 +469,7 @@ resource "aws_ecs_service" "cloud-agent" {
 
 resource "aws_lb" "cloud-agent" {
   count              = var.create ? 1 : 0
-  name               = "depot-connection-${var.connection-id}-cloud-agent"
+  name               = "depot-${var.connection-id}"
   internal           = false
   load_balancer_type = "network"
   subnets            = [aws_subnet.public[0].id]
@@ -490,7 +490,7 @@ resource "aws_lb_listener" "cloud-agent" {
 
 resource "aws_lb_target_group" "cloud-agent" {
   count       = var.create ? 1 : 0
-  name        = "depot-connection-${var.connection-id}-cloud-agent"
+  name        = "depot-${var.connection-id}"
   port        = 8080
   protocol    = "TCP"
   target_type = "ip"
