@@ -94,6 +94,13 @@ resource "aws_security_group" "cloud-agent" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = [aws_subnet.public[0].cidr_block]
+  }
+
   tags = merge(var.tags, {
     Name = "depot-connection-${var.connection-id}-cloud-agent"
   })
@@ -405,10 +412,13 @@ resource "aws_ecs_task_definition" "cloud-agent" {
       { name = "CLOUD_AGENT_CONNECTION_ID", value = var.connection-id },
       { name = "CLOUD_AGENT_SERVICE_NAME", value = local.service-name },
       { name = "CLOUD_AGENT_TF_MODULE_VERSION", value = local.version },
+      { name = "CLOUD_AGENT_CERT_VALIDATION", value = jsonencode(aws_acm_certificate.cloud-agent[0].domain_validation_options) },
+      { name = "CLOUD_AGENT_LB_DNS_NAME", value = aws_lb.cloud-agent[0].dns_name },
 
       # This environment variable is unused, but causes ECS to redeploy if the connection token changes
       { name = "_CLOUD_AGENT_CONNECTION_TOKEN_HASH", value = sha256(var.connection-token) },
     ]
+    portMappings = [{ containerPort = 8080, hostPort = 8080, protocol = "tcp" }]
     secrets = [
       { name = "CLOUD_AGENT_CONNECTION_TOKEN", valueFrom = aws_ssm_parameter.connection-token[0].arn },
     ]
@@ -438,6 +448,12 @@ resource "aws_ecs_service" "cloud-agent" {
     assign_public_ip = true
   }
 
+  load_balancer {
+    target_group_arn = aws_lb_target_group.cloud-agent[0].arn
+    container_name   = "cloud-agent"
+    container_port   = 8080
+  }
+
   capacity_provider_strategy {
     capacity_provider = "FARGATE_SPOT"
     base              = 0
@@ -448,5 +464,44 @@ resource "aws_ecs_service" "cloud-agent" {
     capacity_provider = "FARGATE"
     base              = 0
     weight            = 0
+  }
+}
+
+resource "aws_lb" "cloud-agent" {
+  count              = var.create ? 1 : 0
+  name               = "depot-connection-${var.connection-id}-cloud-agent"
+  internal           = false
+  load_balancer_type = "network"
+  subnets            = [aws_subnet.public[0].id]
+}
+
+resource "aws_lb_listener" "cloud-agent" {
+  load_balancer_arn = aws_lb.cloud-agent[0].arn
+  port              = "443"
+  protocol          = "TLS"
+  certificate_arn   = aws_acm_certificate.cloud-agent[0].arn
+  alpn_policy       = "HTTP2Preferred"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.cloud-agent[0].arn
+  }
+}
+
+resource "aws_lb_target_group" "cloud-agent" {
+  count       = var.create ? 1 : 0
+  name        = "depot-connection-${var.connection-id}-cloud-agent"
+  port        = 8080
+  protocol    = "TCP"
+  target_type = "ip"
+  vpc_id      = aws_vpc.vpc[0].id
+}
+
+resource "aws_acm_certificate" "cloud-agent" {
+  count             = var.create ? 1 : 0
+  domain_name       = "${var.connection-id}.connection.depot.dev"
+  validation_method = "DNS"
+  lifecycle {
+    create_before_destroy = true
   }
 }
