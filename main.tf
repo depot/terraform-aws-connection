@@ -178,6 +178,17 @@ resource "aws_launch_template" "x86" {
   placement {
     availability_zone = var.availability-zone
   }
+
+  tag_specifications = [
+    {
+      resource_type = "instance"
+      tags          = var.tags
+    },
+    {
+      resource_type = "volume"
+      tags          = var.tags
+    },
+  ]
 }
 
 resource "aws_launch_template" "arm" {
@@ -214,6 +225,17 @@ resource "aws_launch_template" "arm" {
   placement {
     availability_zone = var.availability-zone
   }
+
+  tag_specifications = [
+    {
+      resource_type = "instance"
+      tags          = var.tags
+    },
+    {
+      resource_type = "volume"
+      tags          = var.tags
+    },
+  ]
 }
 
 # cloud-agent ECS Task
