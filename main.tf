@@ -186,7 +186,7 @@ resource "aws_launch_template" "x86" {
 
   tag_specifications {
     resource_type = "volume"
-    tags          = var.tags
+    tags          = merge(var.tags, { "depot-connection" = var.connection-id })
   }
 }
 
@@ -232,7 +232,7 @@ resource "aws_launch_template" "arm" {
 
   tag_specifications {
     resource_type = "volume"
-    tags          = var.tags
+    tags          = merge(var.tags, { "depot-connection" = var.connection-id })
   }
 }
 
@@ -363,12 +363,12 @@ resource "aws_iam_role" "cloud-agent" {
           Action   = ["ec2:CreateTags"],
           Effect   = "Allow",
           Resource = "arn:aws:ec2:*:*:*/*",
-          # Condition = {
-          #   StringEquals = {
-          #     "aws:RequestTag/depot-connection" = var.connection-id,
-          #     "ec2:CreateAction"                = ["CreateVolume", "RunInstances"],
-          #   }
-          # }
+          Condition = {
+            StringEquals = {
+              "aws:RequestTag/depot-connection" = var.connection-id,
+              "ec2:CreateAction"                = ["CreateVolume", "RunInstances"],
+            }
+          }
         },
 
         {
