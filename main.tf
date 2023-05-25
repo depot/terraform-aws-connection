@@ -363,12 +363,12 @@ resource "aws_iam_role" "cloud-agent" {
           Action   = ["ec2:CreateTags"],
           Effect   = "Allow",
           Resource = "arn:aws:ec2:*:*:*/*",
-          Condition = {
-            StringEquals = {
-              "aws:RequestTag/depot-connection" = var.connection-id,
-              "ec2:CreateAction"                = ["CreateVolume", "RunInstances"],
-            }
-          }
+          # Condition = {
+          #   StringEquals = {
+          #     "aws:RequestTag/depot-connection" = var.connection-id,
+          #     "ec2:CreateAction"                = ["CreateVolume", "RunInstances"],
+          #   }
+          # }
         },
 
         {
