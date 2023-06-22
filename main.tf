@@ -154,16 +154,6 @@ resource "aws_launch_template" "x86" {
   user_data              = base64encode(templatefile("${path.module}/user-data.sh.tftpl", { DEPOT_CLOUD_CONNECTION_ID = var.connection-id }))
   update_default_version = true
 
-  block_device_mappings {
-    device_name = "/dev/xvda"
-    ebs {
-      delete_on_termination = true
-      encrypted             = true
-      volume_size           = 10
-      volume_type           = "gp3"
-    }
-  }
-
   iam_instance_profile {
     arn = aws_iam_instance_profile.instance[0].arn
   }
@@ -199,16 +189,6 @@ resource "aws_launch_template" "arm" {
   tags                   = var.tags
   user_data              = base64encode(templatefile("${path.module}/user-data.sh.tftpl", { DEPOT_CLOUD_CONNECTION_ID = var.connection-id }))
   update_default_version = true
-
-  block_device_mappings {
-    device_name = "/dev/xvda"
-    ebs {
-      delete_on_termination = true
-      encrypted             = true
-      volume_size           = 10
-      volume_type           = "gp3"
-    }
-  }
 
   iam_instance_profile {
     arn = aws_iam_instance_profile.instance[0].arn
