@@ -69,6 +69,6 @@ variable "ceph-config" {
 variable "ceph-key" {
   type        = string
   description = "Ceph key file"
-  default     = ""
+  default     = "none"
   sensitive   = true
 }
