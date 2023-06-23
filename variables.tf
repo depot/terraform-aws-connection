@@ -53,3 +53,22 @@ variable "allow-ssm-access" {
   description = "Controls if SSM access should be allowed for the builder instances"
   default     = false
 }
+
+variable "extra-env" {
+  type        = list({ key = string, value = string })
+  description = "Extra environment variables to set on the cloud-agent"
+  default     = []
+}
+
+variable "ceph-config" {
+  type        = string
+  description = "Ceph configuration file"
+  default     = ""
+}
+
+variable "ceph-key" {
+  type        = string
+  description = "Ceph key file"
+  default     = ""
+  sensitive   = true
+}
