@@ -55,7 +55,7 @@ variable "allow-ssm-access" {
 }
 
 variable "extra-env" {
-  type        = list({ key = string, value = string })
+  type        = list(object({ key = string, value = string }))
   description = "Extra environment variables to set on the cloud-agent"
   default     = []
 }
