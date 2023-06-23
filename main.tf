@@ -260,7 +260,7 @@ resource "aws_iam_role" "execution-role" {
       Statement = [{
         Action   = ["ssm:GetParameters"]
         Effect   = "Allow"
-        Resource = [aws_ssm_parameter.connection-token[0].arn]
+        Resource = [aws_ssm_parameter.connection-token[0].arn, aws_ssm_parameter.ceph-key[0].arn]
       }]
     })
   }
@@ -381,6 +381,13 @@ resource "aws_ssm_parameter" "connection-token" {
   value = var.connection-token
 }
 
+resource "aws_ssm_parameter" "ceph-key" {
+  count = var.create ? 1 : 0
+  name  = "depot-connection-${var.connection-id}-ceph-key"
+  type  = "SecureString"
+  value = var.ceph-key
+}
+
 resource "aws_ecs_task_definition" "cloud-agent" {
   count                    = var.create ? 1 : 0
   family                   = "depot-connection-${var.connection-id}-cloud-agent"
@@ -394,23 +401,29 @@ resource "aws_ecs_task_definition" "cloud-agent" {
     name      = "cloud-agent"
     image     = "ghcr.io/depot/cloud-agent:${var.cloud-agent-version}"
     essential = true
-    environment = [
-      { name = "CLOUD_AGENT_AWS_AVAILABILITY_ZONE", value = var.availability-zone },
-      { name = "CLOUD_AGENT_AWS_LAUNCH_TEMPLATE_ARM", value = aws_launch_template.arm[0].id },
-      { name = "CLOUD_AGENT_AWS_LAUNCH_TEMPLATE_X86", value = aws_launch_template.x86[0].id },
-      { name = "CLOUD_AGENT_AWS_SG_BUILDKIT", value = aws_security_group.instance-buildkit[0].id },
-      { name = "CLOUD_AGENT_AWS_SG_DEFAULT", value = aws_security_group.instance-default[0].id },
-      { name = "CLOUD_AGENT_AWS_SUBNET_ID", value = aws_subnet.public[0].id },
-      { name = "CLOUD_AGENT_CLUSTER_ARN", value = aws_ecs_cluster.cloud-agent[0].arn },
-      { name = "CLOUD_AGENT_CONNECTION_ID", value = var.connection-id },
-      { name = "CLOUD_AGENT_SERVICE_NAME", value = local.service-name },
-      { name = "CLOUD_AGENT_TF_MODULE_VERSION", value = local.version },
+    environment = concat(
+      [
+        { name = "CLOUD_AGENT_AWS_AVAILABILITY_ZONE", value = var.availability-zone },
+        { name = "CLOUD_AGENT_AWS_LAUNCH_TEMPLATE_ARM", value = aws_launch_template.arm[0].id },
+        { name = "CLOUD_AGENT_AWS_LAUNCH_TEMPLATE_X86", value = aws_launch_template.x86[0].id },
+        { name = "CLOUD_AGENT_AWS_SG_BUILDKIT", value = aws_security_group.instance-buildkit[0].id },
+        { name = "CLOUD_AGENT_AWS_SG_DEFAULT", value = aws_security_group.instance-default[0].id },
+        { name = "CLOUD_AGENT_AWS_SUBNET_ID", value = aws_subnet.public[0].id },
+        { name = "CLOUD_AGENT_CLUSTER_ARN", value = aws_ecs_cluster.cloud-agent[0].arn },
+        { name = "CLOUD_AGENT_CONNECTION_ID", value = var.connection-id },
+        { name = "CLOUD_AGENT_SERVICE_NAME", value = local.service-name },
+        { name = "CLOUD_AGENT_TF_MODULE_VERSION", value = local.version },
+        { name = "CLOUD_AGENT_TF_MODULE_VERSION", value = local.version },
+        { name = "CLOUD_AGENT_CEPH_CONFIG", value = var.ceph-config },
 
-      # This environment variable is unused, but causes ECS to redeploy if the connection token changes
-      { name = "_CLOUD_AGENT_CONNECTION_TOKEN_HASH", value = sha256(var.connection-token) },
-    ]
+        # This environment variable is unused, but causes ECS to redeploy if the connection token changes
+        { name = "_CLOUD_AGENT_CONNECTION_TOKEN_HASH", value = sha256(var.connection-token) },
+      ],
+      var.extra-env
+    )
     secrets = [
       { name = "CLOUD_AGENT_CONNECTION_TOKEN", valueFrom = aws_ssm_parameter.connection-token[0].arn },
+      { name = "CLOUD_AGENT_CEPH_KEY", valueFrom = aws_ssm_parameter.ceph-key[0].arn },
     ]
     logConfiguration = {
       logDriver = "awslogs"
