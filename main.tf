@@ -392,7 +392,7 @@ resource "aws_ecs_task_definition" "cloud-agent" {
   count                    = var.create ? 1 : 0
   family                   = "depot-connection-${var.connection-id}-cloud-agent"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = 2024
+  cpu                      = 2048
   memory                   = 4096
   network_mode             = "awsvpc"
   execution_role_arn       = aws_iam_role.execution-role[0].arn
