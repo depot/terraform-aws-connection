@@ -158,6 +158,11 @@ resource "aws_launch_template" "x86" {
     arn = aws_iam_instance_profile.instance[0].arn
   }
 
+  metadata_options {
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+  }
+
   network_interfaces {
     device_index                = 0
     associate_public_ip_address = true
@@ -192,6 +197,11 @@ resource "aws_launch_template" "arm" {
 
   iam_instance_profile {
     arn = aws_iam_instance_profile.instance[0].arn
+  }
+
+  metadata_options {
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
   }
 
   network_interfaces {
