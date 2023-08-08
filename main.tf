@@ -402,8 +402,8 @@ resource "aws_ecs_task_definition" "cloud-agent" {
   count                    = var.create ? 1 : 0
   family                   = "depot-connection-${var.connection-id}-cloud-agent"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = 2048
-  memory                   = 4096
+  cpu                      = "2048"
+  memory                   = "4096"
   network_mode             = "awsvpc"
   execution_role_arn       = aws_iam_role.execution-role[0].arn
   task_role_arn            = aws_iam_role.cloud-agent[0].arn
@@ -422,7 +422,6 @@ resource "aws_ecs_task_definition" "cloud-agent" {
         { name = "CLOUD_AGENT_CLUSTER_ARN", value = aws_ecs_cluster.cloud-agent[0].arn },
         { name = "CLOUD_AGENT_CONNECTION_ID", value = var.connection-id },
         { name = "CLOUD_AGENT_SERVICE_NAME", value = local.service-name },
-        { name = "CLOUD_AGENT_TF_MODULE_VERSION", value = local.version },
         { name = "CLOUD_AGENT_TF_MODULE_VERSION", value = local.version },
         { name = "CLOUD_AGENT_CEPH_CONFIG", value = var.ceph-config },
 
