@@ -175,16 +175,13 @@ resource "aws_launch_template" "x86" {
   }
 
   tag_specifications {
-    resource_type = "volume"
+    resource_type = "instance"
     tags          = merge(var.tags, { "depot-connection" = var.connection-id })
   }
 
-  dynamic "tag_specifications" {
-    for_each = length(var.tags) > 0 ? [var.tags] : []
-    content {
-      resource_type = "instance"
-      tags          = tag_specifications.value
-    }
+  tag_specifications {
+    resource_type = "volume"
+    tags          = merge(var.tags, { "depot-connection" = var.connection-id })
   }
 }
 
@@ -219,16 +216,13 @@ resource "aws_launch_template" "arm" {
   }
 
   tag_specifications {
-    resource_type = "volume"
+    resource_type = "instance"
     tags          = merge(var.tags, { "depot-connection" = var.connection-id })
   }
 
-  dynamic "tag_specifications" {
-    for_each = length(var.tags) > 0 ? [var.tags] : []
-    content {
-      resource_type = "instance"
-      tags          = tag_specifications.value
-    }
+  tag_specifications {
+    resource_type = "volume"
+    tags          = merge(var.tags, { "depot-connection" = var.connection-id })
   }
 }
 
