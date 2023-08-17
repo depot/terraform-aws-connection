@@ -425,8 +425,9 @@ resource "aws_ecs_task_definition" "cloud-agent" {
         { name = "CLOUD_AGENT_TF_MODULE_VERSION", value = local.version },
         { name = "CLOUD_AGENT_CEPH_CONFIG", value = var.ceph-config },
 
-        # This environment variable is unused, but causes ECS to redeploy if the connection token changes
+        # These environment variable are unused, but causes ECS to redeploy if the secrets change
         { name = "_CLOUD_AGENT_CONNECTION_TOKEN_HASH", value = sha256(var.connection-token) },
+        { name = "_CLOUD_AGENT_CEPH_KEY_HASH", value = sha256(var.connection-token) },
       ],
       var.extra-env
     )
