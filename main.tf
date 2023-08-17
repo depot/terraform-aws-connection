@@ -171,7 +171,7 @@ resource "aws_launch_template" "x86" {
   }
 
   placement {
-    availability_zone = var.availability-zone
+    availability_zone = var.subnets[0].availability-zone
   }
 
   tag_specifications {
@@ -212,7 +212,7 @@ resource "aws_launch_template" "arm" {
   }
 
   placement {
-    availability_zone = var.availability-zone
+    availability_zone = var.subnets[0].availability-zone
   }
 
   tag_specifications {
