@@ -40,10 +40,10 @@ resource "aws_route" "public-internet-gateway" {
 resource "aws_subnet" "public" {
   count                   = var.create ? length(var.subnets) : 0
   vpc_id                  = aws_vpc.vpc[0].id
-  availability_zone       = var.subnets[count.idx].availability-zone
-  cidr_block              = var.subnets[count.idx].cidr
+  availability_zone       = var.subnets[count.index].availability-zone
+  cidr_block              = var.subnets[count.index].cidr
   map_public_ip_on_launch = true
-  tags                    = merge(var.tags, { "Name" = "depot-${var.connection-id}-${var.subnets[count.idx].availability-zone}" })
+  tags                    = merge(var.tags, { "Name" = "depot-${var.connection-id}-${var.subnets[count.index].availability-zone}" })
 }
 
 resource "aws_route_table_association" "public" {
