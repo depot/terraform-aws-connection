@@ -412,7 +412,7 @@ resource "aws_ecs_task_definition" "cloud-agent" {
     essential = true
     environment = concat(
       [
-        { name = "CLOUD_AGENT_AWS_AVAILABILITY_ZONE", value = var.availability-zone },
+        { name = "CLOUD_AGENT_AWS_AVAILABILITY_ZONE", value = var.subnets[0].availability-zone },
         { name = "CLOUD_AGENT_AWS_LAUNCH_TEMPLATE_ARM", value = aws_launch_template.arm[0].id },
         { name = "CLOUD_AGENT_AWS_LAUNCH_TEMPLATE_X86", value = aws_launch_template.x86[0].id },
         { name = "CLOUD_AGENT_AWS_SG_BUILDKIT", value = aws_security_group.instance-buildkit[0].id },
