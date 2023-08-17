@@ -11,9 +11,9 @@ variable "connection-token" {
   sensitive   = true
 }
 
-variable "availability-zone" {
-  type        = string
-  description = "Availability zone to use for the builder instances"
+variable "subnets" {
+  type        = list(object({ availability-zone = string, cidr = string }))
+  description = "Subnets to use for the builder instances"
 }
 
 // Optional
