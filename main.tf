@@ -393,12 +393,13 @@ resource "aws_ecs_task_definition" "cloud-agent" {
     environment = concat(
       [
         { name = "CLOUD_AGENT_AWS_AVAILABILITY_ZONE", value = var.subnets[0].availability-zone },
+        { name = "CLOUD_AGENT_AWS_AVAILABILITY_ZONES", value = jsonencode([for s in var.subnets : s.availability-zone]) },
         { name = "CLOUD_AGENT_AWS_LAUNCH_TEMPLATE_ARM", value = aws_launch_template.arm[0].id },
         { name = "CLOUD_AGENT_AWS_LAUNCH_TEMPLATE_X86", value = aws_launch_template.x86[0].id },
         { name = "CLOUD_AGENT_AWS_SG_BUILDKIT", value = aws_security_group.instance-buildkit[0].id },
         { name = "CLOUD_AGENT_AWS_SG_DEFAULT", value = aws_security_group.instance-default[0].id },
         { name = "CLOUD_AGENT_AWS_SUBNET_ID", value = aws_subnet.public[0].id },
-        { name = "CLOUD_AGENT_AWS_SUBNET_IDS", value = join(",", [for s in aws_subnet.public : s.id]) },
+        { name = "CLOUD_AGENT_AWS_SUBNETS", value = jsonencode(aws_subnet.public) },
         { name = "CLOUD_AGENT_CLUSTER_ARN", value = aws_ecs_cluster.cloud-agent[0].arn },
         { name = "CLOUD_AGENT_CONNECTION_ID", value = var.connection-id },
         { name = "CLOUD_AGENT_SERVICE_NAME", value = local.service-name },
