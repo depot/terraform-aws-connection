@@ -99,10 +99,10 @@ resource "aws_security_group" "cloud-agent" {
   })
 }
 
-resource "aws_security_group" "instance-buildkit" {
+resource "aws_security_group" "instance" {
   count       = var.create ? 1 : 0
-  name        = "depot-connection-${var.connection-id}-instance-buildkit"
-  description = "Security group for Depot connection instance"
+  name        = "depot-connection-${var.connection-id}-instance"
+  description = "Security group for Depot machines"
   vpc_id      = aws_vpc.vpc[0].id
 
   ingress {
@@ -121,24 +121,6 @@ resource "aws_security_group" "instance-buildkit" {
 
   tags = merge(var.tags, {
     Name = "depot-connection-${var.connection-id}-instance-buildkit"
-  })
-}
-
-resource "aws_security_group" "instance-default" {
-  count       = var.create ? 1 : 0
-  name        = "depot-connection-${var.connection-id}-instance-default"
-  description = "Security group for Depot connection instance"
-  vpc_id      = aws_vpc.vpc[0].id
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = merge(var.tags, {
-    Name = "depot-connection-${var.connection-id}-instance-default"
   })
 }
 
@@ -166,7 +148,7 @@ resource "aws_launch_template" "x86" {
   network_interfaces {
     device_index                = 0
     associate_public_ip_address = true
-    security_groups             = [aws_security_group.instance-default[0].id]
+    security_groups             = [aws_security_group.instance[0].id]
     subnet_id                   = aws_subnet.public[0].id
   }
 
@@ -207,7 +189,7 @@ resource "aws_launch_template" "arm" {
   network_interfaces {
     device_index                = 0
     associate_public_ip_address = true
-    security_groups             = [aws_security_group.instance-default[0].id]
+    security_groups             = [aws_security_group.instance[0].id]
     subnet_id                   = aws_subnet.public[0].id
   }
 
