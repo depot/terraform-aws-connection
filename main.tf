@@ -126,52 +126,11 @@ resource "aws_security_group" "instance" {
 
 # Launch Templates
 
-resource "aws_launch_template" "x86" {
+resource "aws_launch_template" "machine" {
   count                  = var.create ? 1 : 0
-  name                   = "depot-connection-${var.connection-id}-x86"
-  description            = "Launch template for Depot connection builder instances (x86)"
+  name                   = "depot-${var.connection-id}-machine"
+  description            = "Launch template for Depot machines"
   ebs_optimized          = true
-  instance_type          = var.instance-types.x86
-  tags                   = var.tags
-  update_default_version = true
-
-  iam_instance_profile {
-    arn = aws_iam_instance_profile.instance[0].arn
-  }
-
-  metadata_options {
-    http_tokens                 = "required"
-    http_put_response_hop_limit = 1
-  }
-
-  network_interfaces {
-    device_index                = 0
-    associate_public_ip_address = true
-    security_groups             = [aws_security_group.instance[0].id]
-    subnet_id                   = aws_subnet.public[0].id
-  }
-
-  placement {
-    availability_zone = var.subnets[0].availability-zone
-  }
-
-  tag_specifications {
-    resource_type = "instance"
-    tags          = merge(var.tags, { "depot-connection" = var.connection-id })
-  }
-
-  tag_specifications {
-    resource_type = "volume"
-    tags          = merge(var.tags, { "depot-connection" = var.connection-id })
-  }
-}
-
-resource "aws_launch_template" "arm" {
-  count                  = var.create ? 1 : 0
-  name                   = "depot-connection-${var.connection-id}-arm"
-  description            = "Launch template for Depot connection builder instances (arm)"
-  ebs_optimized          = true
-  instance_type          = var.instance-types.arm
   tags                   = var.tags
   update_default_version = true
 
@@ -292,8 +251,7 @@ resource "aws_iam_role" "cloud-agent" {
           Action = ["ec2:RunInstances"]
           Effect = "Allow"
           Resource = concat([
-            aws_launch_template.arm[0].arn,
-            aws_launch_template.x86[0].arn,
+            aws_launch_template.instance[0].arn,
             aws_security_group.instance[0].arn,
             "arn:aws:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:network-interface/*",
             "arn:aws:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:volume/*",
@@ -308,7 +266,7 @@ resource "aws_iam_role" "cloud-agent" {
           Condition = {
             StringEquals = {
               "aws:RequestTag/depot-connection" = var.connection-id,
-              "ec2:LaunchTemplate"              = [aws_launch_template.x86[0].arn, aws_launch_template.arm[0].arn],
+              "ec2:LaunchTemplate"              = [aws_launch_template.machine[0].arn],
             }
           }
         },
@@ -393,8 +351,7 @@ resource "aws_ecs_task_definition" "cloud-agent" {
       [
         { name = "CLOUD_AGENT_AWS_AVAILABILITY_ZONE", value = var.subnets[0].availability-zone },
         { name = "CLOUD_AGENT_AWS_AVAILABILITY_ZONES", value = jsonencode([for s in var.subnets : s.availability-zone]) },
-        { name = "CLOUD_AGENT_AWS_LAUNCH_TEMPLATE_ARM", value = aws_launch_template.arm[0].id },
-        { name = "CLOUD_AGENT_AWS_LAUNCH_TEMPLATE_X86", value = aws_launch_template.x86[0].id },
+        { name = "CLOUD_AGENT_AWS_LAUNCH_TEMPLATE", value = aws_launch_template.machine[0].id },
         { name = "CLOUD_AGENT_AWS_SUBNET_ID", value = aws_subnet.public[0].id },
         { name = "CLOUD_AGENT_AWS_SUBNETS", value = jsonencode(aws_subnet.public) },
         { name = "CLOUD_AGENT_CLUSTER_ARN", value = aws_ecs_cluster.cloud-agent[0].arn },

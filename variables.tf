@@ -36,12 +36,6 @@ variable "tags" {
   default     = {}
 }
 
-variable "instance-types" {
-  type        = object({ x86 = string, arm = string })
-  description = "Instance types to use for the builder instances"
-  default     = { x86 = "c6i.xlarge", arm = "c6g.xlarge" }
-}
-
 variable "vpc-cidr-prefix" {
   type        = string
   description = "VPC CIDR prefix"
