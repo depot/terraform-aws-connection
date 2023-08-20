@@ -7,7 +7,7 @@ data "aws_region" "current" {}
 
 locals {
   version      = "1.1.1"
-  service-name = "depot-connection-${var.connection-id}-cloud-agent"
+  service-name = "depot-${var.connection-id}-cloud-agent"
 }
 
 # VPC
@@ -15,19 +15,19 @@ locals {
 resource "aws_vpc" "vpc" {
   count      = var.create ? 1 : 0
   cidr_block = "${var.vpc-cidr-prefix}.0.0/16"
-  tags       = merge(var.tags, { Name = "depot-connection-${var.connection-id}" })
+  tags       = merge(var.tags, { Name = "depot-${var.connection-id}" })
 }
 
 resource "aws_internet_gateway" "internet-gateway" {
   count  = var.create ? 1 : 0
   vpc_id = aws_vpc.vpc[0].id
-  tags   = merge(var.tags, { Name = "depot-connection-${var.connection-id}" })
+  tags   = merge(var.tags, { Name = "depot-${var.connection-id}" })
 }
 
 resource "aws_route_table" "public" {
   count  = var.create ? 1 : 0
   vpc_id = aws_vpc.vpc[0].id
-  tags   = merge(var.tags, { Name = "depot-connection-${var.connection-id}" })
+  tags   = merge(var.tags, { Name = "depot-${var.connection-id}" })
 }
 
 resource "aws_route" "public-internet-gateway" {
@@ -56,7 +56,7 @@ resource "aws_route_table_association" "public" {
 
 resource "aws_iam_role" "instance" {
   count = var.create ? 1 : 0
-  name  = "depot-connection-${var.connection-id}-instance"
+  name  = "depot-${var.connection-id}-instance"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
@@ -69,7 +69,7 @@ resource "aws_iam_role" "instance" {
 
 resource "aws_iam_instance_profile" "instance" {
   count = var.create ? 1 : 0
-  name  = "depot-connection-${var.connection-id}-instance"
+  name  = "depot-${var.connection-id}-instance"
   role  = aws_iam_role.instance[0].name
 }
 
@@ -83,7 +83,7 @@ resource "aws_iam_role_policy_attachment" "instance-ssm" {
 
 resource "aws_security_group" "cloud-agent" {
   count       = var.create ? 1 : 0
-  name        = "depot-connection-${var.connection-id}-cloud-agent"
+  name        = "depot-${var.connection-id}-cloud-agent"
   description = "Security group for Depot connection cloud-agent"
   vpc_id      = aws_vpc.vpc[0].id
 
@@ -95,13 +95,13 @@ resource "aws_security_group" "cloud-agent" {
   }
 
   tags = merge(var.tags, {
-    Name = "depot-connection-${var.connection-id}-cloud-agent"
+    Name = "depot-${var.connection-id}-cloud-agent"
   })
 }
 
 resource "aws_security_group" "instance" {
   count       = var.create ? 1 : 0
-  name        = "depot-connection-${var.connection-id}-instance"
+  name        = "depot-${var.connection-id}-instance"
   description = "Security group for Depot machines"
   vpc_id      = aws_vpc.vpc[0].id
 
@@ -120,7 +120,7 @@ resource "aws_security_group" "instance" {
   }
 
   tags = merge(var.tags, {
-    Name = "depot-connection-${var.connection-id}-instance"
+    Name = "depot-${var.connection-id}-instance"
   })
 }
 
@@ -169,7 +169,7 @@ resource "aws_launch_template" "machine" {
 
 resource "aws_ecs_cluster" "cloud-agent" {
   count = var.create ? 1 : 0
-  name  = "depot-connection-${var.connection-id}"
+  name  = "depot-${var.connection-id}"
 }
 
 resource "aws_ecs_cluster_capacity_providers" "cloud-agent" {
@@ -192,7 +192,7 @@ resource "aws_ecs_cluster_capacity_providers" "cloud-agent" {
 
 resource "aws_iam_role" "execution-role" {
   count               = var.create ? 1 : 0
-  name                = "depot-connection-${var.connection-id}-ecs-execution-role"
+  name                = "depot-${var.connection-id}-ecs-execution-role"
   managed_policy_arns = ["arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"]
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -217,7 +217,7 @@ resource "aws_iam_role" "execution-role" {
 
 resource "aws_iam_role" "cloud-agent" {
   count = var.create ? 1 : 0
-  name  = "depot-connection-${var.connection-id}-cloud-agent"
+  name  = "depot-${var.connection-id}-cloud-agent"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -316,27 +316,27 @@ resource "aws_iam_role" "cloud-agent" {
 
 resource "aws_cloudwatch_log_group" "connection" {
   count             = var.create ? 1 : 0
-  name              = "depot-connection-${var.connection-id}"
+  name              = "depot-${var.connection-id}"
   retention_in_days = 7
 }
 
 resource "aws_ssm_parameter" "connection-token" {
   count = var.create ? 1 : 0
-  name  = "depot-connection-${var.connection-id}-connection-token"
+  name  = "depot-${var.connection-id}-connection-token"
   type  = "SecureString"
   value = var.connection-token
 }
 
 resource "aws_ssm_parameter" "ceph-key" {
   count = var.create ? 1 : 0
-  name  = "depot-connection-${var.connection-id}-ceph-key"
+  name  = "depot-${var.connection-id}-ceph-key"
   type  = "SecureString"
   value = var.ceph-key
 }
 
 resource "aws_ecs_task_definition" "cloud-agent" {
   count                    = var.create ? 1 : 0
-  family                   = "depot-connection-${var.connection-id}-cloud-agent"
+  family                   = "depot-${var.connection-id}-cloud-agent"
   requires_compatibilities = ["FARGATE"]
   cpu                      = "2048"
   memory                   = "4096"
