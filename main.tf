@@ -133,7 +133,6 @@ resource "aws_launch_template" "x86" {
   ebs_optimized          = true
   instance_type          = var.instance-types.x86
   tags                   = var.tags
-  user_data              = base64encode(templatefile("${path.module}/user-data.sh.tftpl", { DEPOT_CLOUD_CONNECTION_ID = var.connection-id }))
   update_default_version = true
 
   iam_instance_profile {
@@ -174,7 +173,6 @@ resource "aws_launch_template" "arm" {
   ebs_optimized          = true
   instance_type          = var.instance-types.arm
   tags                   = var.tags
-  user_data              = base64encode(templatefile("${path.module}/user-data.sh.tftpl", { DEPOT_CLOUD_CONNECTION_ID = var.connection-id }))
   update_default_version = true
 
   iam_instance_profile {
