@@ -120,7 +120,7 @@ resource "aws_security_group" "instance" {
   }
 
   tags = merge(var.tags, {
-    Name = "depot-connection-${var.connection-id}-instance-buildkit"
+    Name = "depot-connection-${var.connection-id}-instance"
   })
 }
 
@@ -294,8 +294,7 @@ resource "aws_iam_role" "cloud-agent" {
           Resource = concat([
             aws_launch_template.arm[0].arn,
             aws_launch_template.x86[0].arn,
-            aws_security_group.instance-buildkit[0].arn,
-            aws_security_group.instance-default[0].arn,
+            aws_security_group.instance[0].arn,
             "arn:aws:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:network-interface/*",
             "arn:aws:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:volume/*",
             "arn:aws:ec2:${data.aws_region.current.name}::image/*",
@@ -396,8 +395,6 @@ resource "aws_ecs_task_definition" "cloud-agent" {
         { name = "CLOUD_AGENT_AWS_AVAILABILITY_ZONES", value = jsonencode([for s in var.subnets : s.availability-zone]) },
         { name = "CLOUD_AGENT_AWS_LAUNCH_TEMPLATE_ARM", value = aws_launch_template.arm[0].id },
         { name = "CLOUD_AGENT_AWS_LAUNCH_TEMPLATE_X86", value = aws_launch_template.x86[0].id },
-        { name = "CLOUD_AGENT_AWS_SG_BUILDKIT", value = aws_security_group.instance-buildkit[0].id },
-        { name = "CLOUD_AGENT_AWS_SG_DEFAULT", value = aws_security_group.instance-default[0].id },
         { name = "CLOUD_AGENT_AWS_SUBNET_ID", value = aws_subnet.public[0].id },
         { name = "CLOUD_AGENT_AWS_SUBNETS", value = jsonencode(aws_subnet.public) },
         { name = "CLOUD_AGENT_CLUSTER_ARN", value = aws_ecs_cluster.cloud-agent[0].arn },
