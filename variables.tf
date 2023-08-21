@@ -11,9 +11,9 @@ variable "connection-token" {
   sensitive   = true
 }
 
-variable "availability-zone" {
-  type        = string
-  description = "Availability zone to use for the builder instances"
+variable "subnets" {
+  type        = list(object({ availability-zone = string, cidr-block = string }))
+  description = "Subnets to use for the VPC"
 }
 
 // Optional
@@ -42,10 +42,10 @@ variable "instance-types" {
   default     = { x86 = "c6i.xlarge", arm = "c6g.xlarge" }
 }
 
-variable "vpc-cidr-prefix" {
+variable "cidr-block" {
   type        = string
-  description = "VPC CIDR prefix"
-  default     = "10.0"
+  description = "VPC CIDR block"
+  default     = "10.0.0.0/16"
 }
 
 variable "allow-ssm-access" {
