@@ -172,7 +172,7 @@ resource "aws_launch_template" "x86" {
 
   tag_specifications {
     resource_type = "instance"
-    tags          = var.tags
+    tags          = merge(var.tags, { "depot-connection" = var.connection-id })
   }
 
   tag_specifications {
@@ -209,7 +209,7 @@ resource "aws_launch_template" "arm" {
 
   tag_specifications {
     resource_type = "instance"
-    tags          = var.tags
+    tags          = merge(var.tags, { "depot-connection" = var.connection-id })
   }
 
   tag_specifications {
