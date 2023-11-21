@@ -381,7 +381,7 @@ resource "aws_iam_role" "cloud-agent" {
 resource "aws_cloudwatch_log_group" "connection" {
   count             = var.create ? 1 : 0
   name              = "depot-connection-${var.connection-id}"
-  retention_in_days = 7
+  retention_in_days = var.cloud-agent-log-retention
 }
 
 resource "aws_ssm_parameter" "connection-token" {
