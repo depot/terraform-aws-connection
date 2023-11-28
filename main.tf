@@ -14,7 +14,7 @@ locals {
 
 resource "aws_vpc" "vpc" {
   count      = var.create ? 1 : 0
-  cidr_block = "${var.vpc-cidr-prefix}.0.0/16"
+  cidr_block = var.cidr-block
   tags       = merge(var.tags, { Name = "depot-connection-${var.connection-id}" })
 }
 
@@ -38,17 +38,17 @@ resource "aws_route" "public-internet-gateway" {
 }
 
 resource "aws_subnet" "public" {
-  count                   = var.create ? 1 : 0
+  count                   = var.create ? length(var.subnets) : 0
   vpc_id                  = aws_vpc.vpc[0].id
-  availability_zone       = var.availability-zone
-  cidr_block              = "${var.vpc-cidr-prefix}.0.0/16"
+  availability_zone       = var.subnets[count.index].availability-zone
+  cidr_block              = var.subnets[count.index].cidr-block
   map_public_ip_on_launch = true
-  tags                    = merge(var.tags, { "Name" = "depot-connection-${var.connection-id}" })
+  tags                    = merge(var.tags, { "Name" = "depot-${var.connection-id}-${var.subnets[count.index].availability-zone}" })
 }
 
 resource "aws_route_table_association" "public" {
-  count          = var.create ? 1 : 0
-  subnet_id      = aws_subnet.public[0].id
+  count          = var.create ? length(var.subnets) : 0
+  subnet_id      = aws_subnet.public[count.index].id
   route_table_id = aws_route_table.public[0].id
 }
 
@@ -170,10 +170,6 @@ resource "aws_launch_template" "x86" {
     subnet_id                   = aws_subnet.public[0].id
   }
 
-  placement {
-    availability_zone = var.availability-zone
-  }
-
   tag_specifications {
     resource_type = "instance"
     tags          = merge(var.tags, { "depot-connection" = var.connection-id })
@@ -209,10 +205,6 @@ resource "aws_launch_template" "arm" {
     associate_public_ip_address = true
     security_groups             = [aws_security_group.instance-default[0].id]
     subnet_id                   = aws_subnet.public[0].id
-  }
-
-  placement {
-    availability_zone = var.availability-zone
   }
 
   tag_specifications {
@@ -311,16 +303,15 @@ resource "aws_iam_role" "cloud-agent" {
         {
           Action = ["ec2:RunInstances"]
           Effect = "Allow"
-          Resource = [
+          Resource = concat([
             aws_launch_template.arm[0].arn,
             aws_launch_template.x86[0].arn,
             aws_security_group.instance-buildkit[0].arn,
             aws_security_group.instance-default[0].arn,
-            aws_subnet.public[0].arn,
             "arn:aws:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:network-interface/*",
             "arn:aws:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:volume/*",
             "arn:aws:ec2:${data.aws_region.current.name}::image/*",
-          ]
+          ], [for s in aws_subnet.public : s.arn])
         },
 
         {
@@ -413,12 +404,13 @@ resource "aws_ecs_task_definition" "cloud-agent" {
     essential = true
     environment = concat(
       [
-        { name = "CLOUD_AGENT_AWS_AVAILABILITY_ZONE", value = var.availability-zone },
+        { name = "CLOUD_AGENT_AWS_AVAILABILITY_ZONE", value = var.subnets[0].availability-zone },
         { name = "CLOUD_AGENT_AWS_LAUNCH_TEMPLATE_ARM", value = aws_launch_template.arm[0].id },
         { name = "CLOUD_AGENT_AWS_LAUNCH_TEMPLATE_X86", value = aws_launch_template.x86[0].id },
         { name = "CLOUD_AGENT_AWS_SG_BUILDKIT", value = aws_security_group.instance-buildkit[0].id },
         { name = "CLOUD_AGENT_AWS_SG_DEFAULT", value = aws_security_group.instance-default[0].id },
         { name = "CLOUD_AGENT_AWS_SUBNET_ID", value = aws_subnet.public[0].id },
+        { name = "CLOUD_AGENT_AWS_SUBNETS", value = jsonencode(aws_subnet.public) },
         { name = "CLOUD_AGENT_CLUSTER_ARN", value = aws_ecs_cluster.cloud-agent[0].arn },
         { name = "CLOUD_AGENT_CONNECTION_ID", value = var.connection-id },
         { name = "CLOUD_AGENT_SERVICE_NAME", value = local.service-name },
@@ -456,7 +448,7 @@ resource "aws_ecs_service" "cloud-agent" {
 
   network_configuration {
     security_groups  = [aws_security_group.cloud-agent[0].id]
-    subnets          = [aws_subnet.public[0].id]
+    subnets          = [for s in aws_subnet.public : s.id]
     assign_public_ip = true
   }
 
