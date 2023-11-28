@@ -24,6 +24,12 @@ variable "cloud-agent-version" {
   default     = "2"
 }
 
+variable "cloud-agent-log-retention" {
+  type        = number
+  description = "Number of days to keep cloudwatch logs for the cloud-agent"
+  default     = 7
+}
+
 variable "create" {
   type        = bool
   description = "Controls if Depot connection resources should be created"
