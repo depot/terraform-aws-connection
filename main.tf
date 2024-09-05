@@ -353,7 +353,7 @@ resource "aws_iam_role" "cloud-agent" {
         },
 
         {
-          Action    = ["ecs:ListTasks", "ecs:DescribeTasks", "ecs:StopTask"],
+          Action    = ["ecs:*"],
           Effect    = "Allow",
           Resource  = ["*"],
           Condition = { ArnEquals = { "ecs:cluster" = aws_ecs_cluster.cloud-agent[0].arn } }
