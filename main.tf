@@ -243,10 +243,22 @@ resource "aws_ecs_cluster_capacity_providers" "cloud-agent" {
   }
 }
 
+resource "aws_iam_policy" "execution-role" {
+  count = var.create ? 1 : 0
+  name  = "depot-connection-${var.connection-id}-execution-role"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action   = ["ssm:GetParameters"]
+      Effect   = "Allow"
+      Resource = [aws_ssm_parameter.connection-token[0].arn, aws_ssm_parameter.ceph-key[0].arn]
+    }]
+  })
+}
+
 resource "aws_iam_role" "execution-role" {
-  count               = var.create ? 1 : 0
-  name                = "depot-connection-${var.connection-id}-ecs-execution-role"
-  managed_policy_arns = ["arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"]
+  count = var.create ? 1 : 0
+  name  = "depot-connection-${var.connection-id}-ecs-execution-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -255,17 +267,105 @@ resource "aws_iam_role" "execution-role" {
       Principal = { Service = "ecs-tasks.amazonaws.com" }
     }]
   })
-  inline_policy {
-    name = "ecs-execution-role"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [{
-        Action   = ["ssm:GetParameters"]
+}
+
+resource "aws_iam_role_policy_attachments_exclusive" "execution-role" {
+  count     = var.create ? 1 : 0
+  role_name = aws_iam_role.execution-role[0].name
+  policy_arns = [
+    "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
+    aws_iam_policy.execution-role[0].arn
+  ]
+}
+
+resource "aws_iam_policy" "cloud-agent" {
+  count = var.create ? 1 : 0
+  name  = "depot-connection-${var.connection-id}-cloud-agent"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "ec2:DescribeInstances",
+          "ec2:DescribeVolumes",
+        ]
         Effect   = "Allow"
-        Resource = [aws_ssm_parameter.connection-token[0].arn, aws_ssm_parameter.ceph-key[0].arn]
-      }]
-    })
-  }
+        Resource = "*"
+      },
+
+      {
+        Action    = ["ec2:CreateVolume"]
+        Effect    = "Allow"
+        Resource  = "*",
+        Condition = { StringEquals = { "aws:RequestTag/depot-connection" = var.connection-id } }
+      },
+
+      {
+        Action = ["ec2:RunInstances"]
+        Effect = "Allow"
+        Resource = concat([
+          aws_launch_template.arm[0].arn,
+          aws_launch_template.x86[0].arn,
+          aws_security_group.instance-buildkit[0].arn,
+          aws_security_group.instance-default[0].arn,
+          "arn:aws:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:network-interface/*",
+          "arn:aws:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:volume/*",
+          "arn:aws:ec2:${data.aws_region.current.name}::image/*",
+        ], [for s in aws_subnet.public : s.arn])
+      },
+
+      {
+        Action   = ["ec2:RunInstances"]
+        Effect   = "Allow"
+        Resource = "arn:aws:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:instance/*",
+        Condition = {
+          StringEquals = {
+            "aws:RequestTag/depot-connection" = var.connection-id,
+            "ec2:LaunchTemplate"              = [aws_launch_template.x86[0].arn, aws_launch_template.arm[0].arn],
+          }
+        }
+      },
+
+      {
+        Action    = ["ec2:DeleteVolume", "ec2:StartInstances", "ec2:StopInstances", "ec2:TerminateInstances"]
+        Effect    = "Allow"
+        Resource  = "*"
+        Condition = { StringEquals = { "aws:ResourceTag/depot-connection" = var.connection-id } }
+      },
+
+      {
+        Action    = ["ec2:AttachVolume", "ec2:DetachVolume"],
+        Effect    = "Allow",
+        Resource  = ["arn:aws:ec2:*:*:instance/*", "arn:aws:ec2:*:*:volume/*"],
+        Condition = { StringEquals = { "aws:ResourceTag/depot-connection" = var.connection-id } }
+      },
+
+      {
+        Action   = ["ec2:CreateTags"],
+        Effect   = "Allow",
+        Resource = "arn:aws:ec2:*:*:*/*",
+        Condition = {
+          StringEquals = {
+            "aws:RequestTag/depot-connection" = var.connection-id,
+            "ec2:CreateAction"                = ["CreateVolume", "RunInstances"],
+          }
+        }
+      },
+
+      {
+        Action    = ["ecs:*"],
+        Effect    = "Allow",
+        Resource  = ["*"],
+        Condition = { ArnEquals = { "ecs:cluster" = aws_ecs_cluster.cloud-agent[0].arn } }
+      },
+
+      {
+        Action   = ["iam:PassRole"]
+        Effect   = "Allow"
+        Resource = aws_iam_role.instance[0].arn
+      },
+    ]
+  })
 }
 
 resource "aws_iam_role" "cloud-agent" {
@@ -279,94 +379,12 @@ resource "aws_iam_role" "cloud-agent" {
       Principal = { Service = "ecs-tasks.amazonaws.com" }
     }]
   })
-  inline_policy {
-    name = "cloud-agent"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Action = [
-            "ec2:DescribeInstances",
-            "ec2:DescribeVolumes",
-          ]
-          Effect   = "Allow"
-          Resource = "*"
-        },
+}
 
-        {
-          Action    = ["ec2:CreateVolume"]
-          Effect    = "Allow"
-          Resource  = "*",
-          Condition = { StringEquals = { "aws:RequestTag/depot-connection" = var.connection-id } }
-        },
-
-        {
-          Action = ["ec2:RunInstances"]
-          Effect = "Allow"
-          Resource = concat([
-            aws_launch_template.arm[0].arn,
-            aws_launch_template.x86[0].arn,
-            aws_security_group.instance-buildkit[0].arn,
-            aws_security_group.instance-default[0].arn,
-            "arn:aws:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:network-interface/*",
-            "arn:aws:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:volume/*",
-            "arn:aws:ec2:${data.aws_region.current.name}::image/*",
-          ], [for s in aws_subnet.public : s.arn])
-        },
-
-        {
-          Action   = ["ec2:RunInstances"]
-          Effect   = "Allow"
-          Resource = "arn:aws:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:instance/*",
-          Condition = {
-            StringEquals = {
-              "aws:RequestTag/depot-connection" = var.connection-id,
-              "ec2:LaunchTemplate"              = [aws_launch_template.x86[0].arn, aws_launch_template.arm[0].arn],
-            }
-          }
-        },
-
-        {
-          Action    = ["ec2:DeleteVolume", "ec2:StartInstances", "ec2:StopInstances", "ec2:TerminateInstances"]
-          Effect    = "Allow"
-          Resource  = "*"
-          Condition = { StringEquals = { "aws:ResourceTag/depot-connection" = var.connection-id } }
-        },
-
-        {
-          Action    = ["ec2:AttachVolume", "ec2:DetachVolume"],
-          Effect    = "Allow",
-          Resource  = ["arn:aws:ec2:*:*:instance/*", "arn:aws:ec2:*:*:volume/*"],
-          Condition = { StringEquals = { "aws:ResourceTag/depot-connection" = var.connection-id } }
-        },
-
-        {
-          Action   = ["ec2:CreateTags"],
-          Effect   = "Allow",
-          Resource = "arn:aws:ec2:*:*:*/*",
-          Condition = {
-            StringEquals = {
-              "aws:RequestTag/depot-connection" = var.connection-id,
-              "ec2:CreateAction"                = ["CreateVolume", "RunInstances"],
-            }
-          }
-        },
-
-        {
-          Action    = ["ecs:*"],
-          Effect    = "Allow",
-          Resource  = ["*"],
-          Condition = { ArnEquals = { "ecs:cluster" = aws_ecs_cluster.cloud-agent[0].arn } }
-        },
-
-        {
-          Action   = ["iam:PassRole"]
-          Effect   = "Allow"
-          Resource = aws_iam_role.instance[0].arn
-        },
-      ]
-    })
-  }
+resource "aws_iam_role_policy_attachments_exclusive" "cloud-agent" {
+  count       = var.create ? 1 : 0
+  role_name   = aws_iam_role.cloud-agent[0].name
+  policy_arns = [aws_iam_policy.cloud-agent[0].arn]
 }
 
 resource "aws_cloudwatch_log_group" "connection" {
