@@ -151,7 +151,7 @@ resource "aws_launch_template" "x86" {
   ebs_optimized          = true
   instance_type          = var.instance-types.x86
   tags                   = var.tags
-  user_data              = base64encode(templatefile("${path.module}/user-data.sh.tftpl", { DEPOT_CLOUD_CONNECTION_ID = var.connection-id }))
+  user_data              = templatefile("${path.module}/user-data.sh.tftpl", { DEPOT_CLOUD_CONNECTION_ID = var.connection-id })
   update_default_version = true
 
   iam_instance_profile {
@@ -188,7 +188,7 @@ resource "aws_launch_template" "arm" {
   ebs_optimized          = true
   instance_type          = var.instance-types.arm
   tags                   = var.tags
-  user_data              = base64encode(templatefile("${path.module}/user-data.sh.tftpl", { DEPOT_CLOUD_CONNECTION_ID = var.connection-id }))
+  user_data              = templatefile("${path.module}/user-data.sh.tftpl", { DEPOT_CLOUD_CONNECTION_ID = var.connection-id })
   update_default_version = true
 
   iam_instance_profile {
@@ -308,16 +308,16 @@ resource "aws_iam_policy" "cloud-agent" {
           aws_launch_template.x86[0].arn,
           aws_security_group.instance-buildkit[0].arn,
           aws_security_group.instance-default[0].arn,
-          "arn:aws:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:network-interface/*",
-          "arn:aws:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:volume/*",
-          "arn:aws:ec2:${data.aws_region.current.name}::image/*",
+          "arn:aws:ec2:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:network-interface/*",
+          "arn:aws:ec2:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:volume/*",
+          "arn:aws:ec2:${data.aws_region.current.region}::image/*",
         ], [for s in aws_subnet.public : s.arn])
       },
 
       {
         Action   = ["ec2:RunInstances"]
         Effect   = "Allow"
-        Resource = "arn:aws:ec2:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:instance/*",
+        Resource = "arn:aws:ec2:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:instance/*",
         Condition = {
           StringEquals = {
             "aws:RequestTag/depot-connection" = var.connection-id,
@@ -447,7 +447,7 @@ resource "aws_ecs_task_definition" "cloud-agent" {
     logConfiguration = {
       logDriver = "awslogs"
       options = {
-        "awslogs-region"        = "${data.aws_region.current.name}"
+        "awslogs-region"        = "${data.aws_region.current.region}"
         "awslogs-group"         = "${aws_cloudwatch_log_group.connection[0].name}"
         "awslogs-stream-prefix" = "cloud-agent"
       }
