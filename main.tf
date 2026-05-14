@@ -3,13 +3,6 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-# Locals
-
-locals {
-  version      = "1.1.1"
-  service-name = "depot-connection-${var.connection-id}-cloud-agent"
-}
-
 # VPC
 
 resource "aws_vpc" "vpc" {
@@ -116,6 +109,33 @@ resource "aws_security_group" "instance-default" {
   tags = merge(var.tags, { Name = "depot-connection-${var.connection-id}-instance-default" })
 }
 
+resource "aws_ssm_parameter" "connection" {
+  name = "/depot/connection/${var.connection-id}"
+  type = "String"
+  value = jsonencode({
+    accountID          = data.aws_caller_identity.current.account_id
+    connectionID       = var.connection-id
+    instanceProfileARN = aws_iam_instance_profile.instance.arn
+    instanceRoleARN    = aws_iam_role.instance.arn
+    region             = data.aws_region.current.region
+    routeTableID       = aws_route_table.public.id
+    securityGroups = {
+      buildkit = aws_security_group.instance-buildkit.id
+      default  = aws_security_group.instance-default.id
+    }
+    subnets = [
+      for subnet in aws_subnet.public : {
+        id               = subnet.id
+        availabilityZone = subnet.availability_zone
+        cidrBlock        = subnet.cidr_block
+      }
+    ]
+    vpcID = aws_vpc.vpc.id
+  })
+
+  tags = merge(var.tags, { "depot-connection" = var.connection-id })
+}
+
 resource "aws_iam_policy" "control-plane" {
   name = "depot-connection-${var.connection-id}-control-plane"
   policy = jsonencode({
@@ -192,6 +212,12 @@ resource "aws_iam_policy" "control-plane" {
             "iam:PassedToService" = "ec2.amazonaws.com"
           }
         }
+      },
+
+      {
+        Action   = ["ssm:GetParameter"]
+        Effect   = "Allow"
+        Resource = aws_ssm_parameter.connection.arn
       },
     ]
   })
