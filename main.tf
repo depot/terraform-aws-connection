@@ -13,33 +13,29 @@ locals {
 # VPC
 
 resource "aws_vpc" "vpc" {
-  count      = var.create ? 1 : 0
   cidr_block = var.cidr-block
   tags       = merge(var.tags, { Name = "depot-connection-${var.connection-id}" })
 }
 
 resource "aws_internet_gateway" "internet-gateway" {
-  count  = var.create ? 1 : 0
-  vpc_id = aws_vpc.vpc[0].id
+  vpc_id = aws_vpc.vpc.id
   tags   = merge(var.tags, { Name = "depot-connection-${var.connection-id}" })
 }
 
 resource "aws_route_table" "public" {
-  count  = var.create ? 1 : 0
-  vpc_id = aws_vpc.vpc[0].id
+  vpc_id = aws_vpc.vpc.id
   tags   = merge(var.tags, { Name = "depot-connection-${var.connection-id}" })
 }
 
 resource "aws_route" "public-internet-gateway" {
-  count                  = var.create ? 1 : 0
-  route_table_id         = aws_route_table.public[0].id
+  route_table_id         = aws_route_table.public.id
   destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = aws_internet_gateway.internet-gateway[0].id
+  gateway_id             = aws_internet_gateway.internet-gateway.id
 }
 
 resource "aws_subnet" "public" {
-  count                   = var.create ? length(var.subnets) : 0
-  vpc_id                  = aws_vpc.vpc[0].id
+  count                   = length(var.subnets)
+  vpc_id                  = aws_vpc.vpc.id
   availability_zone       = var.subnets[count.index].availability-zone
   cidr_block              = var.subnets[count.index].cidr-block
   map_public_ip_on_launch = true
@@ -47,16 +43,15 @@ resource "aws_subnet" "public" {
 }
 
 resource "aws_route_table_association" "public" {
-  count          = var.create ? length(var.subnets) : 0
+  count          = length(var.subnets)
   subnet_id      = aws_subnet.public[count.index].id
-  route_table_id = aws_route_table.public[0].id
+  route_table_id = aws_route_table.public.id
 }
 
 # Instance IAM
 
 resource "aws_iam_role" "instance" {
-  count = var.create ? 1 : 0
-  name  = "depot-connection-${var.connection-id}-instance"
+  name = "depot-connection-${var.connection-id}-instance"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
@@ -68,42 +63,26 @@ resource "aws_iam_role" "instance" {
 }
 
 resource "aws_iam_instance_profile" "instance" {
-  count = var.create ? 1 : 0
-  name  = "depot-connection-${var.connection-id}-instance"
-  role  = aws_iam_role.instance[0].name
+  name = "depot-connection-${var.connection-id}-instance"
+  role = aws_iam_role.instance.name
 }
 
 resource "aws_iam_role_policy_attachment" "instance-ssm" {
-  count      = var.create && var.allow-ssm-access ? 1 : 0
-  role       = aws_iam_role.instance[0].name
+  count      = var.allow-ssm-access ? 1 : 0
+  role       = aws_iam_role.instance.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 # Security Groups
 
-resource "aws_security_group" "cloud-agent" {
-  count       = var.create ? 1 : 0
-  name        = "depot-connection-${var.connection-id}-cloud-agent"
-  description = "Security group for Depot connection cloud-agent"
-  vpc_id      = aws_vpc.vpc[0].id
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = merge(var.tags, {
-    Name = "depot-connection-${var.connection-id}-cloud-agent"
-  })
+resource "aws_default_security_group" "default" {
+  vpc_id = aws_vpc.vpc.id
 }
 
 resource "aws_security_group" "instance-buildkit" {
-  count       = var.create ? 1 : 0
   name        = "depot-connection-${var.connection-id}-instance-buildkit"
-  description = "Security group for Depot connection instance"
-  vpc_id      = aws_vpc.vpc[0].id
+  description = "Security group for Depot connection BuildKit instances"
+  vpc_id      = aws_vpc.vpc.id
 
   ingress {
     from_port   = 443
@@ -119,16 +98,13 @@ resource "aws_security_group" "instance-buildkit" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = merge(var.tags, {
-    Name = "depot-connection-${var.connection-id}-instance-buildkit"
-  })
+  tags = merge(var.tags, { Name = "depot-connection-${var.connection-id}-instance-buildkit" })
 }
 
 resource "aws_security_group" "instance-default" {
-  count       = var.create ? 1 : 0
   name        = "depot-connection-${var.connection-id}-instance-default"
-  description = "Security group for Depot connection instance"
-  vpc_id      = aws_vpc.vpc[0].id
+  description = "Security group for Depot connection instances"
+  vpc_id      = aws_vpc.vpc.id
 
   egress {
     from_port   = 0
@@ -137,158 +113,16 @@ resource "aws_security_group" "instance-default" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = merge(var.tags, {
-    Name = "depot-connection-${var.connection-id}-instance-default"
-  })
+  tags = merge(var.tags, { Name = "depot-connection-${var.connection-id}-instance-default" })
 }
 
-# Launch Templates
-
-resource "aws_launch_template" "x86" {
-  count                  = var.create ? 1 : 0
-  name                   = "depot-connection-${var.connection-id}-x86"
-  description            = "Launch template for Depot connection builder instances (x86)"
-  ebs_optimized          = true
-  instance_type          = var.instance-types.x86
-  tags                   = var.tags
-  user_data              = base64encode(templatefile("${path.module}/user-data.sh.tftpl", { DEPOT_CLOUD_CONNECTION_ID = var.connection-id }))
-  update_default_version = true
-
-  iam_instance_profile {
-    arn = aws_iam_instance_profile.instance[0].arn
-  }
-
-  metadata_options {
-    http_tokens                 = "required"
-    http_put_response_hop_limit = 1
-  }
-
-  network_interfaces {
-    device_index                = 0
-    associate_public_ip_address = true
-    security_groups             = [aws_security_group.instance-default[0].id]
-    subnet_id                   = aws_subnet.public[0].id
-  }
-
-  tag_specifications {
-    resource_type = "instance"
-    tags          = merge(var.tags, { "depot-connection" = var.connection-id })
-  }
-
-  tag_specifications {
-    resource_type = "volume"
-    tags          = merge(var.tags, { "depot-connection" = var.connection-id })
-  }
-}
-
-resource "aws_launch_template" "arm" {
-  count                  = var.create ? 1 : 0
-  name                   = "depot-connection-${var.connection-id}-arm"
-  description            = "Launch template for Depot connection builder instances (arm)"
-  ebs_optimized          = true
-  instance_type          = var.instance-types.arm
-  tags                   = var.tags
-  user_data              = base64encode(templatefile("${path.module}/user-data.sh.tftpl", { DEPOT_CLOUD_CONNECTION_ID = var.connection-id }))
-  update_default_version = true
-
-  iam_instance_profile {
-    arn = aws_iam_instance_profile.instance[0].arn
-  }
-
-  metadata_options {
-    http_tokens                 = "required"
-    http_put_response_hop_limit = 1
-  }
-
-  network_interfaces {
-    device_index                = 0
-    associate_public_ip_address = true
-    security_groups             = [aws_security_group.instance-default[0].id]
-    subnet_id                   = aws_subnet.public[0].id
-  }
-
-  tag_specifications {
-    resource_type = "instance"
-    tags          = merge(var.tags, { "depot-connection" = var.connection-id })
-  }
-
-  tag_specifications {
-    resource_type = "volume"
-    tags          = merge(var.tags, { "depot-connection" = var.connection-id })
-  }
-}
-
-# cloud-agent ECS Task
-
-resource "aws_ecs_cluster" "cloud-agent" {
-  count = var.create ? 1 : 0
-  name  = "depot-connection-${var.connection-id}"
-}
-
-resource "aws_ecs_cluster_capacity_providers" "cloud-agent" {
-  count              = var.create ? 1 : 0
-  cluster_name       = aws_ecs_cluster.cloud-agent[0].name
-  capacity_providers = ["FARGATE_SPOT", "FARGATE"]
-
-  default_capacity_provider_strategy {
-    base              = 0
-    weight            = 100
-    capacity_provider = "FARGATE_SPOT"
-  }
-
-  default_capacity_provider_strategy {
-    base              = 0
-    weight            = 0
-    capacity_provider = "FARGATE"
-  }
-}
-
-resource "aws_iam_policy" "execution-role" {
-  count = var.create ? 1 : 0
-  name  = "depot-connection-${var.connection-id}-execution-role"
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action   = ["ssm:GetParameters"]
-      Effect   = "Allow"
-      Resource = [aws_ssm_parameter.connection-token[0].arn, aws_ssm_parameter.ceph-key[0].arn]
-    }]
-  })
-}
-
-resource "aws_iam_role" "execution-role" {
-  count = var.create ? 1 : 0
-  name  = "depot-connection-${var.connection-id}-ecs-execution-role"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action    = "sts:AssumeRole"
-      Effect    = "Allow"
-      Principal = { Service = "ecs-tasks.amazonaws.com" }
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachments_exclusive" "execution-role" {
-  count     = var.create ? 1 : 0
-  role_name = aws_iam_role.execution-role[0].name
-  policy_arns = [
-    "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
-    aws_iam_policy.execution-role[0].arn
-  ]
-}
-
-resource "aws_iam_policy" "cloud-agent" {
-  count = var.create ? 1 : 0
-  name  = "depot-connection-${var.connection-id}-cloud-agent"
+resource "aws_iam_policy" "control-plane" {
+  name = "depot-connection-${var.connection-id}-control-plane"
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Action = [
-          "ec2:DescribeInstances",
-          "ec2:DescribeVolumes",
-        ]
+        Action   = ["ec2:DescribeInstances", "ec2:DescribeVolumes"]
         Effect   = "Allow"
         Resource = "*"
       },
@@ -304,10 +138,8 @@ resource "aws_iam_policy" "cloud-agent" {
         Action = ["ec2:RunInstances"]
         Effect = "Allow"
         Resource = concat([
-          aws_launch_template.arm[0].arn,
-          aws_launch_template.x86[0].arn,
-          aws_security_group.instance-buildkit[0].arn,
-          aws_security_group.instance-default[0].arn,
+          aws_security_group.instance-buildkit.arn,
+          aws_security_group.instance-default.arn,
           "arn:aws:ec2:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:network-interface/*",
           "arn:aws:ec2:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:volume/*",
           "arn:aws:ec2:${data.aws_region.current.region}::image/*",
@@ -321,7 +153,6 @@ resource "aws_iam_policy" "cloud-agent" {
         Condition = {
           StringEquals = {
             "aws:RequestTag/depot-connection" = var.connection-id,
-            "ec2:LaunchTemplate"              = [aws_launch_template.x86[0].arn, aws_launch_template.arm[0].arn],
           }
         }
       },
@@ -353,132 +184,37 @@ resource "aws_iam_policy" "cloud-agent" {
       },
 
       {
-        Action    = ["ecs:*"],
-        Effect    = "Allow",
-        Resource  = ["*"],
-        Condition = { ArnEquals = { "ecs:cluster" = aws_ecs_cluster.cloud-agent[0].arn } }
-      },
-
-      {
         Action   = ["iam:PassRole"]
         Effect   = "Allow"
-        Resource = aws_iam_role.instance[0].arn
+        Resource = aws_iam_role.instance.arn
+        Condition = {
+          StringEquals = {
+            "iam:PassedToService" = "ec2.amazonaws.com"
+          }
+        }
       },
     ]
   })
 }
 
-resource "aws_iam_role" "cloud-agent" {
-  count = var.create ? 1 : 0
-  name  = "depot-connection-${var.connection-id}-cloud-agent"
+resource "aws_iam_role" "control-plane" {
+  name = "depot-connection-${var.connection-id}-control-plane"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
       Action    = "sts:AssumeRole"
       Effect    = "Allow"
-      Principal = { Service = "ecs-tasks.amazonaws.com" }
+      Principal = { AWS = "375021575472" }
+      Condition = {
+        StringEquals = {
+          "aws:ExternalId" = var.connection-id
+        }
+      }
     }]
   })
 }
 
-resource "aws_iam_role_policy_attachments_exclusive" "cloud-agent" {
-  count       = var.create ? 1 : 0
-  role_name   = aws_iam_role.cloud-agent[0].name
-  policy_arns = [aws_iam_policy.cloud-agent[0].arn]
-}
-
-resource "aws_cloudwatch_log_group" "connection" {
-  count             = var.create ? 1 : 0
-  name              = "depot-connection-${var.connection-id}"
-  retention_in_days = var.cloud-agent-log-retention
-}
-
-resource "aws_ssm_parameter" "connection-token" {
-  count = var.create ? 1 : 0
-  name  = "depot-connection-${var.connection-id}-connection-token"
-  type  = "SecureString"
-  value = var.connection-token
-}
-
-resource "aws_ssm_parameter" "ceph-key" {
-  count = var.create ? 1 : 0
-  name  = "depot-connection-${var.connection-id}-ceph-key"
-  type  = "SecureString"
-  value = var.ceph-key
-}
-
-resource "aws_ecs_task_definition" "cloud-agent" {
-  count                    = var.create ? 1 : 0
-  family                   = "depot-connection-${var.connection-id}-cloud-agent"
-  requires_compatibilities = ["FARGATE"]
-  cpu                      = "2048"
-  memory                   = "4096"
-  network_mode             = "awsvpc"
-  execution_role_arn       = aws_iam_role.execution-role[0].arn
-  task_role_arn            = aws_iam_role.cloud-agent[0].arn
-  container_definitions = jsonencode([{
-    name      = "cloud-agent"
-    image     = "ghcr.io/depot/cloud-agent:${var.cloud-agent-version}"
-    essential = true
-    environment = concat(
-      [
-        { name = "CLOUD_AGENT_AWS_AVAILABILITY_ZONE", value = var.subnets[0].availability-zone },
-        { name = "CLOUD_AGENT_AWS_LAUNCH_TEMPLATE_ARM", value = aws_launch_template.arm[0].id },
-        { name = "CLOUD_AGENT_AWS_LAUNCH_TEMPLATE_X86", value = aws_launch_template.x86[0].id },
-        { name = "CLOUD_AGENT_AWS_SG_BUILDKIT", value = aws_security_group.instance-buildkit[0].id },
-        { name = "CLOUD_AGENT_AWS_SG_DEFAULT", value = aws_security_group.instance-default[0].id },
-        { name = "CLOUD_AGENT_AWS_SUBNET_ID", value = aws_subnet.public[0].id },
-        { name = "CLOUD_AGENT_AWS_SUBNETS", value = jsonencode(aws_subnet.public) },
-        { name = "CLOUD_AGENT_CLUSTER_ARN", value = aws_ecs_cluster.cloud-agent[0].arn },
-        { name = "CLOUD_AGENT_CONNECTION_ID", value = var.connection-id },
-        { name = "CLOUD_AGENT_SERVICE_NAME", value = local.service-name },
-        { name = "CLOUD_AGENT_TF_MODULE_VERSION", value = local.version },
-        { name = "CLOUD_AGENT_CEPH_CONFIG", value = var.ceph-config },
-
-        # This environment variable is unused, but causes ECS to redeploy if the connection token changes
-        { name = "_CLOUD_AGENT_CONNECTION_TOKEN_HASH", value = sha256(var.connection-token) },
-      ],
-      var.extra-env
-    )
-    secrets = [
-      { name = "CLOUD_AGENT_CONNECTION_TOKEN", valueFrom = aws_ssm_parameter.connection-token[0].arn },
-      { name = "CLOUD_AGENT_CEPH_KEY", valueFrom = aws_ssm_parameter.ceph-key[0].arn },
-    ]
-    logConfiguration = {
-      logDriver = "awslogs"
-      options = {
-        "awslogs-region"        = "${data.aws_region.current.region}"
-        "awslogs-group"         = "${aws_cloudwatch_log_group.connection[0].name}"
-        "awslogs-stream-prefix" = "cloud-agent"
-      }
-    }
-  }])
-}
-
-resource "aws_ecs_service" "cloud-agent" {
-  count                              = var.create ? 1 : 0
-  name                               = local.service-name
-  cluster                            = aws_ecs_cluster.cloud-agent[0].id
-  task_definition                    = aws_ecs_task_definition.cloud-agent[0].arn
-  desired_count                      = 1
-  deployment_minimum_healthy_percent = 50
-  deployment_maximum_percent         = 200
-
-  network_configuration {
-    security_groups  = [aws_security_group.cloud-agent[0].id]
-    subnets          = [for s in aws_subnet.public : s.id]
-    assign_public_ip = true
-  }
-
-  capacity_provider_strategy {
-    capacity_provider = "FARGATE_SPOT"
-    base              = 0
-    weight            = 100
-  }
-
-  capacity_provider_strategy {
-    capacity_provider = "FARGATE"
-    base              = 0
-    weight            = 0
-  }
+resource "aws_iam_role_policy_attachments_exclusive" "control-plane" {
+  role_name   = aws_iam_role.control-plane.name
+  policy_arns = [aws_iam_policy.control-plane.arn]
 }

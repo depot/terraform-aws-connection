@@ -3,6 +3,6 @@
     "docs": "terraform-docs markdown table --output-file README.md --output-mode inject . && prettier --write README.md"
   },
   "dependencies": {
-    "prettier": "^2.7.1"
+    "prettier": "^3.8.3"
   }
 }
