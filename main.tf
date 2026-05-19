@@ -233,7 +233,7 @@ resource "aws_iam_role" "control-plane" {
       Principal = { AWS = "375021575472" }
       Condition = {
         StringEquals = {
-          "aws:ExternalId" = var.connection-id
+          "sts:ExternalId" = var.connection-id
         }
       }
     }]
