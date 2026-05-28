@@ -5,6 +5,7 @@ module "connection" {
   source        = "depot/connection/aws"
   version       = "x.x.x"
   connection-id = "xxxxxx"
+  controller-role-arn = "arn:aws:iam::123456789012:role/depot-controller-example"
   cidr-block    = "10.0.0.0/16"
   subnets = [
     { availability-zone = "us-east-1a", cidr-block = "10.0.1.0/18" },
@@ -21,6 +22,7 @@ module "connection" {
 | Name                                                                              | Description                                                    | Type                                                                | Default         | Required |
 | --------------------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------- | --------------- | :------: |
 | <a name="input_connection-id"></a> [connection-id](#input_connection-id)          | ID for the Depot connection (provided in the Depot console)    | `string`                                                            | n/a             |   yes    |
+| <a name="input_controller-role-arn"></a> [controller-role-arn](#input_controller-role-arn) | ARN of the Depot realm controller role that can assume this connection role | `string`                                                            | n/a             |   yes    |
 | <a name="input_subnets"></a> [subnets](#input_subnets)                            | Subnets to use for the VPC                                     | `list(object({ availability-zone = string, cidr-block = string }))` | n/a             |   yes    |
 | <a name="input_allow-ssm-access"></a> [allow-ssm-access](#input_allow-ssm-access) | Controls if SSM access should be allowed for the EC2 instances | `bool`                                                              | `false`         |    no    |
 | <a name="input_cidr-block"></a> [cidr-block](#input_cidr-block)                   | VPC CIDR block                                                 | `string`                                                            | `"10.0.0.0/16"` |    no    |
@@ -30,6 +32,7 @@ module "connection" {
 
 | Name                                                                                   | Description              | Value        | Sensitive |
 | -------------------------------------------------------------------------------------- | ------------------------ | ------------ | :-------: |
+| <a name="output_connection-controller-role-arn"></a> [connection-controller-role-arn](#output_connection-controller-role-arn) | ARN of the connection controller role | `"ROLE-ARN"` |    no     |
 | <a name="output_instance-role-arn"></a> [instance-role-arn](#output_instance-role-arn) | ARN of the instance role | `"ROLE-ARN"` |    no     |
 | <a name="output_instance-role-id"></a> [instance-role-id](#output_instance-role-id)    | ID of the instance role  | `"ROLE-ID"`  |    no     |
 | <a name="output_route-table-id"></a> [route-table-id](#output_route-table-id)          | VPC route table ID       | `"null"`     |    no     |

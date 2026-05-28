@@ -8,6 +8,11 @@ output "instance-role-id" {
   description = "ID of the instance role"
 }
 
+output "connection-controller-role-arn" {
+  value       = try(aws_iam_role.controller.arn, "")
+  description = "ARN of the connection controller role"
+}
+
 output "vpc-id" {
   value       = try(aws_vpc.vpc.id, "")
   description = "VPC ID"
