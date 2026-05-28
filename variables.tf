@@ -10,6 +10,11 @@ variable "subnets" {
   description = "Subnets to use for the VPC"
 }
 
+variable "controller-role-arn" {
+  type        = string
+  description = "ARN of the Depot realm controller role that can assume this connection role"
+}
+
 // Optional
 
 variable "tags" {

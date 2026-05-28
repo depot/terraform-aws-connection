@@ -136,8 +136,8 @@ resource "aws_ssm_parameter" "connection" {
   tags = merge(var.tags, { "depot-connection" = var.connection-id })
 }
 
-resource "aws_iam_policy" "control-plane" {
-  name = "depot-connection-${var.connection-id}-control-plane"
+resource "aws_iam_policy" "cloudd" {
+  name = "depot-connection-${var.connection-id}-cloudd"
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -223,24 +223,19 @@ resource "aws_iam_policy" "control-plane" {
   })
 }
 
-resource "aws_iam_role" "control-plane" {
-  name = "depot-connection-${var.connection-id}-control-plane"
+resource "aws_iam_role" "cloudd" {
+  name = "depot-connection-${var.connection-id}-cloudd"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
       Action    = "sts:AssumeRole"
       Effect    = "Allow"
-      Principal = { AWS = "375021575472" }
-      Condition = {
-        StringEquals = {
-          "sts:ExternalId" = var.connection-id
-        }
-      }
+      Principal = { AWS = var.controller-role-arn }
     }]
   })
 }
 
-resource "aws_iam_role_policy_attachments_exclusive" "control-plane" {
-  role_name   = aws_iam_role.control-plane.name
-  policy_arns = [aws_iam_policy.control-plane.arn]
+resource "aws_iam_role_policy_attachments_exclusive" "cloudd" {
+  role_name   = aws_iam_role.cloudd.name
+  policy_arns = [aws_iam_policy.cloudd.arn]
 }
