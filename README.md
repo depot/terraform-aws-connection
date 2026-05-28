@@ -32,7 +32,7 @@ module "connection" {
 
 | Name                                                                                   | Description              | Value        | Sensitive |
 | -------------------------------------------------------------------------------------- | ------------------------ | ------------ | :-------: |
-| <a name="output_cloudd-role-arn"></a> [cloudd-role-arn](#output_cloudd-role-arn)       | ARN of the cloudd connection role | `"ROLE-ARN"` |    no     |
+| <a name="output_connection-controller-role-arn"></a> [connection-controller-role-arn](#output_connection-controller-role-arn) | ARN of the connection controller role | `"ROLE-ARN"` |    no     |
 | <a name="output_instance-role-arn"></a> [instance-role-arn](#output_instance-role-arn) | ARN of the instance role | `"ROLE-ARN"` |    no     |
 | <a name="output_instance-role-id"></a> [instance-role-id](#output_instance-role-id)    | ID of the instance role  | `"ROLE-ID"`  |    no     |
 | <a name="output_route-table-id"></a> [route-table-id](#output_route-table-id)          | VPC route table ID       | `"null"`     |    no     |

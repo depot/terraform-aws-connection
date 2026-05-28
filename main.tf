@@ -136,8 +136,8 @@ resource "aws_ssm_parameter" "connection" {
   tags = merge(var.tags, { "depot-connection" = var.connection-id })
 }
 
-resource "aws_iam_policy" "cloudd" {
-  name = "depot-connection-${var.connection-id}-cloudd"
+resource "aws_iam_policy" "controller" {
+  name = "depot-connection-${var.connection-id}-controller"
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -223,8 +223,8 @@ resource "aws_iam_policy" "cloudd" {
   })
 }
 
-resource "aws_iam_role" "cloudd" {
-  name = "depot-connection-${var.connection-id}-cloudd"
+resource "aws_iam_role" "controller" {
+  name = "depot-connection-${var.connection-id}-controller"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -235,7 +235,7 @@ resource "aws_iam_role" "cloudd" {
   })
 }
 
-resource "aws_iam_role_policy_attachments_exclusive" "cloudd" {
-  role_name   = aws_iam_role.cloudd.name
-  policy_arns = [aws_iam_policy.cloudd.arn]
+resource "aws_iam_role_policy_attachments_exclusive" "controller" {
+  role_name   = aws_iam_role.controller.name
+  policy_arns = [aws_iam_policy.controller.arn]
 }

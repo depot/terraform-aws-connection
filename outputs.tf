@@ -8,9 +8,9 @@ output "instance-role-id" {
   description = "ID of the instance role"
 }
 
-output "cloudd-role-arn" {
-  value       = try(aws_iam_role.cloudd.arn, "")
-  description = "ARN of the cloudd connection role"
+output "connection-controller-role-arn" {
+  value       = try(aws_iam_role.controller.arn, "")
+  description = "ARN of the connection controller role"
 }
 
 output "vpc-id" {
