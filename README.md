@@ -35,7 +35,6 @@ module "connection" {
   }
 
   associate-public-ip-address = false
-  flow-log-destination-arn    = "arn:aws-us-gov:logs:us-gov-west-1:123456789012:log-group:/aws/vpc/flowlogs"
 
   connection-parameter-kms-key-id = "arn:aws-us-gov:kms:us-gov-west-1:123456789012:key/..."
   root-volume-kms-key-id          = "arn:aws-us-gov:kms:us-gov-west-1:123456789012:key/..."
@@ -43,6 +42,8 @@ module "connection" {
   launch-template-id              = "lt-123"
 }
 ```
+
+The connection metadata includes `kmsKeyID` and `launchTemplateID` when `cache-volume-kms-key-id` and `launch-template-id` are provided, so Depot can use those values when launching instances and creating volumes.
 
 <!-- BEGIN_TF_DOCS -->
 
@@ -59,7 +60,6 @@ module "connection" {
 | <a name="input_connection-parameter-kms-key-id"></a> [connection-parameter-kms-key-id](#input_connection-parameter-kms-key-id) | KMS key ID or ARN for the SSM SecureString connection metadata parameter | `string` | `null` | no |
 | <a name="input_create-internet-gateway"></a> [create-internet-gateway](#input_create-internet-gateway) | Whether to create public internet routing for module-managed subnets | `bool` | `true` | no |
 | <a name="input_existing-subnets"></a> [existing-subnets](#input_existing-subnets) | Existing subnets to use instead of creating subnets | `list(object({ id = string, availability-zone = string, cidr-block = string }))` | `[]` | no |
-| <a name="input_flow-log-destination-arn"></a> [flow-log-destination-arn](#input_flow-log-destination-arn) | Destination ARN for VPC flow logs | `string` | `null` | no |
 | <a name="input_launch-template-id"></a> [launch-template-id](#input_launch-template-id) | Launch template ID Depot should use when launching instances | `string` | `null` | no |
 | <a name="input_root-volume-kms-key-id"></a> [root-volume-kms-key-id](#input_root-volume-kms-key-id) | KMS key ID or ARN Depot should use for launched instance root volumes | `string` | `null` | no |
 | <a name="input_security-groups"></a> [security-groups](#input_security-groups) | Existing security groups for Depot instances | `object({ buildkit = string, default = string })` | `null` | no |

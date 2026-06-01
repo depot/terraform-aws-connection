@@ -96,30 +96,6 @@ variable "default-egress-cidr-blocks" {
   default     = ["0.0.0.0/0"]
 }
 
-variable "flow-log-destination-arn" {
-  type        = string
-  description = "Destination ARN for VPC flow logs. When null, flow logs are not created."
-  default     = null
-}
-
-variable "flow-log-destination-type" {
-  type        = string
-  description = "Destination type for VPC flow logs"
-  default     = "cloud-watch-logs"
-}
-
-variable "flow-log-traffic-type" {
-  type        = string
-  description = "Traffic type captured by VPC flow logs"
-  default     = "ALL"
-}
-
-variable "flow-log-iam-role-arn" {
-  type        = string
-  description = "IAM role ARN for CloudWatch Logs flow log delivery"
-  default     = null
-}
-
 variable "connection-parameter-kms-key-id" {
   type        = string
   description = "KMS key ID or ARN for the SSM SecureString connection metadata parameter"

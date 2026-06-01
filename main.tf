@@ -97,16 +97,6 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public[0].id
 }
 
-resource "aws_flow_log" "vpc" {
-  count                = var.flow-log-destination-arn == null ? 0 : 1
-  vpc_id               = local.vpc_id
-  traffic_type         = var.flow-log-traffic-type
-  log_destination      = var.flow-log-destination-arn
-  log_destination_type = var.flow-log-destination-type
-  iam_role_arn         = var.flow-log-iam-role-arn
-  tags                 = merge(var.tags, { Name = "depot-connection-${var.connection-id}" })
-}
-
 # Instance IAM
 
 resource "aws_iam_role" "instance" {
@@ -190,6 +180,7 @@ resource "aws_ssm_parameter" "connection" {
     controllerRoleARN        = aws_iam_role.controller.arn
     instanceProfileARN       = aws_iam_instance_profile.instance.arn
     instanceRoleARN          = aws_iam_role.instance.arn
+    kmsKeyID                 = var.cache-volume-kms-key-id
     launchTemplateID         = var.launch-template-id
     partition                = local.partition
     region                   = local.region
