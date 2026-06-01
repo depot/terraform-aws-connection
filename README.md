@@ -37,7 +37,6 @@ module "connection" {
   associate-public-ip-address = false
   flow-log-destination-arn    = "arn:aws-us-gov:logs:us-gov-west-1:123456789012:log-group:/aws/vpc/flowlogs"
 
-  connection-parameter-type       = "SecureString"
   connection-parameter-kms-key-id = "arn:aws-us-gov:kms:us-gov-west-1:123456789012:key/..."
   root-volume-kms-key-id          = "arn:aws-us-gov:kms:us-gov-west-1:123456789012:key/..."
   cache-volume-kms-key-id         = "arn:aws-us-gov:kms:us-gov-west-1:123456789012:key/..."
@@ -58,7 +57,6 @@ module "connection" {
 | <a name="input_cache-volume-kms-key-id"></a> [cache-volume-kms-key-id](#input_cache-volume-kms-key-id) | KMS key ID or ARN Depot should use for cache/data volumes | `string` | `null` | no |
 | <a name="input_cidr-block"></a> [cidr-block](#input_cidr-block)                   | VPC CIDR block                                                               | `string`                                                            | `"10.0.0.0/16"` |    no    |
 | <a name="input_connection-parameter-kms-key-id"></a> [connection-parameter-kms-key-id](#input_connection-parameter-kms-key-id) | KMS key ID or ARN for the SSM SecureString connection metadata parameter | `string` | `null` | no |
-| <a name="input_connection-parameter-type"></a> [connection-parameter-type](#input_connection-parameter-type) | SSM parameter type for connection metadata | `string` | `"String"` | no |
 | <a name="input_create-internet-gateway"></a> [create-internet-gateway](#input_create-internet-gateway) | Whether to create public internet routing for module-managed subnets | `bool` | `true` | no |
 | <a name="input_existing-subnets"></a> [existing-subnets](#input_existing-subnets) | Existing subnets to use instead of creating subnets | `list(object({ id = string, availability-zone = string, cidr-block = string }))` | `[]` | no |
 | <a name="input_flow-log-destination-arn"></a> [flow-log-destination-arn](#input_flow-log-destination-arn) | Destination ARN for VPC flow logs | `string` | `null` | no |

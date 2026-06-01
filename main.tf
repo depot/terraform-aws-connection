@@ -180,7 +180,7 @@ resource "aws_security_group" "instance-default" {
 
 resource "aws_ssm_parameter" "connection" {
   name   = "/depot/connection/${var.connection-id}"
-  type   = var.connection-parameter-type
+  type   = "SecureString"
   key_id = var.connection-parameter-kms-key-id
   value = jsonencode({
     accountID                = local.account_id

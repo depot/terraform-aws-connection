@@ -120,17 +120,6 @@ variable "flow-log-iam-role-arn" {
   default     = null
 }
 
-variable "connection-parameter-type" {
-  type        = string
-  description = "SSM parameter type for connection metadata"
-  default     = "String"
-
-  validation {
-    condition     = contains(["String", "SecureString"], var.connection-parameter-type)
-    error_message = "connection-parameter-type must be String or SecureString."
-  }
-}
-
 variable "connection-parameter-kms-key-id" {
   type        = string
   description = "KMS key ID or ARN for the SSM SecureString connection metadata parameter"
