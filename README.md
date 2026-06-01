@@ -37,13 +37,12 @@ module "connection" {
   associate-public-ip-address = false
 
   connection-parameter-kms-key-id = "arn:aws-us-gov:kms:us-gov-west-1:123456789012:key/..."
-  root-volume-kms-key-id          = "arn:aws-us-gov:kms:us-gov-west-1:123456789012:key/..."
-  cache-volume-kms-key-id         = "arn:aws-us-gov:kms:us-gov-west-1:123456789012:key/..."
+  volume-kms-key-id               = "arn:aws-us-gov:kms:us-gov-west-1:123456789012:key/..."
   launch-template-id              = "lt-123"
 }
 ```
 
-The connection metadata includes `kmsKeyID` and `launchTemplateID` when `cache-volume-kms-key-id` and `launch-template-id` are provided, so Depot can use those values when launching instances and creating volumes.
+The connection metadata includes `volumeKMSKeyID` and `launchTemplateID` when `volume-kms-key-id` and `launch-template-id` are provided, so Depot can use those values when launching instances and creating EBS volumes.
 
 <!-- BEGIN_TF_DOCS -->
 
@@ -55,16 +54,15 @@ The connection metadata includes `kmsKeyID` and `launchTemplateID` when `cache-v
 | <a name="input_controller-role-arn"></a> [controller-role-arn](#input_controller-role-arn) | ARN of the Depot realm controller role that can assume this connection role | `string`                                                            | n/a             |   yes    |
 | <a name="input_allow-ssm-access"></a> [allow-ssm-access](#input_allow-ssm-access) | Controls if SSM access should be allowed for the EC2 instances               | `bool`                                                              | `false`         |    no    |
 | <a name="input_associate-public-ip-address"></a> [associate-public-ip-address](#input_associate-public-ip-address) | Whether Depot should associate public IPs when launching instances | `bool` | `true` | no |
-| <a name="input_cache-volume-kms-key-id"></a> [cache-volume-kms-key-id](#input_cache-volume-kms-key-id) | KMS key ID or ARN Depot should use for cache/data volumes | `string` | `null` | no |
 | <a name="input_cidr-block"></a> [cidr-block](#input_cidr-block)                   | VPC CIDR block                                                               | `string`                                                            | `"10.0.0.0/16"` |    no    |
 | <a name="input_connection-parameter-kms-key-id"></a> [connection-parameter-kms-key-id](#input_connection-parameter-kms-key-id) | KMS key ID or ARN for the SSM SecureString connection metadata parameter | `string` | `null` | no |
 | <a name="input_create-internet-gateway"></a> [create-internet-gateway](#input_create-internet-gateway) | Whether to create public internet routing for module-managed subnets | `bool` | `true` | no |
 | <a name="input_existing-subnets"></a> [existing-subnets](#input_existing-subnets) | Existing subnets to use instead of creating subnets | `list(object({ id = string, availability-zone = string, cidr-block = string }))` | `[]` | no |
 | <a name="input_launch-template-id"></a> [launch-template-id](#input_launch-template-id) | Launch template ID Depot should use when launching instances | `string` | `null` | no |
-| <a name="input_root-volume-kms-key-id"></a> [root-volume-kms-key-id](#input_root-volume-kms-key-id) | KMS key ID or ARN Depot should use for launched instance root volumes | `string` | `null` | no |
 | <a name="input_security-groups"></a> [security-groups](#input_security-groups) | Existing security groups for Depot instances | `object({ buildkit = string, default = string })` | `null` | no |
 | <a name="input_subnets"></a> [subnets](#input_subnets)                            | Subnets to create in the module-managed VPC                                  | `list(object({ availability-zone = string, cidr-block = string }))` | `[]`            |    no    |
 | <a name="input_tags"></a> [tags](#input_tags)                                     | A map of tags to apply to all resources                                      | `map(string)`                                                       | `{}`            |    no    |
+| <a name="input_volume-kms-key-id"></a> [volume-kms-key-id](#input_volume-kms-key-id) | KMS key ID or ARN Depot should use for launched instance root and cache/data EBS volumes | `string` | `null` | no |
 | <a name="input_vpc-id"></a> [vpc-id](#input_vpc-id)                               | Existing VPC ID to use instead of creating a VPC                             | `string`                                                            | `null`          |    no    |
 
 ## Outputs

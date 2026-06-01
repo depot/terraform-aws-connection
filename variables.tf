@@ -102,15 +102,9 @@ variable "connection-parameter-kms-key-id" {
   default     = null
 }
 
-variable "root-volume-kms-key-id" {
+variable "volume-kms-key-id" {
   type        = string
-  description = "KMS key ID or ARN Depot should use for launched instance root volumes"
-  default     = null
-}
-
-variable "cache-volume-kms-key-id" {
-  type        = string
-  description = "KMS key ID or ARN Depot should use for cache/data volumes"
+  description = "KMS key ID or ARN Depot should use for launched instance root and cache/data EBS volumes"
   default     = null
 }
 

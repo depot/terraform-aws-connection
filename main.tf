@@ -46,13 +46,14 @@ locals {
     "arn:${local.partition}:ec2:${local.region}:${local.account_id}:security-group/${var.security-groups.default}",
   ]
 
-  kms_key_arns = [
-    for arn in [
-      var.root-volume-kms-key-id,
-      var.cache-volume-kms-key-id,
-      var.connection-parameter-kms-key-id,
-    ] : arn if arn != null && arn != ""
-  ]
+  kms_key_ids = compact([
+    var.volume-kms-key-id,
+    var.connection-parameter-kms-key-id,
+  ])
+
+  kms_key_arns = distinct([
+    for key_id in local.kms_key_ids : startswith(key_id, "arn:") ? key_id : "arn:${local.partition}:kms:${local.region}:${local.account_id}:key/${key_id}"
+  ])
 }
 
 # VPC
@@ -175,16 +176,13 @@ resource "aws_ssm_parameter" "connection" {
   value = jsonencode({
     accountID                = local.account_id
     associatePublicIPAddress = var.associate-public-ip-address
-    cacheVolumeKMSKeyID      = var.cache-volume-kms-key-id
     connectionID             = var.connection-id
     controllerRoleARN        = aws_iam_role.controller.arn
     instanceProfileARN       = aws_iam_instance_profile.instance.arn
     instanceRoleARN          = aws_iam_role.instance.arn
-    kmsKeyID                 = var.cache-volume-kms-key-id
     launchTemplateID         = var.launch-template-id
     partition                = local.partition
     region                   = local.region
-    rootVolumeKMSKeyID       = var.root-volume-kms-key-id
     routeTableID             = local.route_table_id
     securityGroups           = local.security_groups
     subnets = [
@@ -194,7 +192,8 @@ resource "aws_ssm_parameter" "connection" {
         cidrBlock        = subnet.cidrBlock
       }
     ]
-    vpcID = local.vpc_id
+    volumeKMSKeyID = var.volume-kms-key-id
+    vpcID          = local.vpc_id
   })
 
   tags = merge(var.tags, { "depot-connection" = var.connection-id })
