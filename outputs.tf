@@ -14,11 +14,33 @@ output "connection-controller-role-arn" {
 }
 
 output "vpc-id" {
-  value       = try(aws_vpc.vpc.id, "")
+  value       = local.vpc_id
   description = "VPC ID"
 }
 
 output "route-table-id" {
-  value       = try(aws_route_table.public.id, "")
+  value       = local.route_table_id
   description = "VPC route table ID"
+}
+
+output "security-groups" {
+  value       = local.security_groups
+  description = "Security groups used by Depot instances"
+}
+
+output "subnets" {
+  value = [
+    for subnet in local.subnets : {
+      id               = subnet.id
+      availabilityZone = subnet.availabilityZone
+      cidrBlock        = subnet.cidrBlock
+    }
+  ]
+  description = "Subnets used by Depot instances"
+}
+
+output "connection-metadata" {
+  value       = jsondecode(aws_ssm_parameter.connection.value)
+  description = "Connection metadata written for Depot"
+  sensitive   = true
 }

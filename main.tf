@@ -1,44 +1,110 @@
 # Data providers
 
 data "aws_caller_identity" "current" {}
+data "aws_partition" "current" {}
 data "aws_region" "current" {}
+
+locals {
+  create_vpc             = var.vpc-id == null
+  create_subnets         = length(var.existing-subnets) == 0
+  create_security_groups = var.security-groups == null
+  create_public_route    = local.create_vpc && local.create_subnets && var.create-internet-gateway
+
+  partition  = data.aws_partition.current.partition
+  account_id = data.aws_caller_identity.current.account_id
+  region     = data.aws_region.current.region
+
+  vpc_id         = local.create_vpc ? aws_vpc.vpc[0].id : var.vpc-id
+  route_table_id = local.create_public_route ? aws_route_table.public[0].id : var.route-table-id
+
+  subnets = local.create_subnets ? [
+    for subnet in aws_subnet.public : {
+      id               = subnet.id
+      availabilityZone = subnet.availability_zone
+      cidrBlock        = subnet.cidr_block
+      arn              = subnet.arn
+    }
+    ] : [
+    for subnet in var.existing-subnets : {
+      id               = subnet.id
+      availabilityZone = subnet.availability-zone
+      cidrBlock        = subnet.cidr-block
+      arn              = "arn:${local.partition}:ec2:${local.region}:${local.account_id}:subnet/${subnet.id}"
+    }
+  ]
+
+  security_groups = local.create_security_groups ? {
+    buildkit = aws_security_group.instance-buildkit[0].id
+    default  = aws_security_group.instance-default[0].id
+  } : var.security-groups
+
+  security_group_arns = local.create_security_groups ? [
+    aws_security_group.instance-buildkit[0].arn,
+    aws_security_group.instance-default[0].arn,
+    ] : [
+    "arn:${local.partition}:ec2:${local.region}:${local.account_id}:security-group/${var.security-groups.buildkit}",
+    "arn:${local.partition}:ec2:${local.region}:${local.account_id}:security-group/${var.security-groups.default}",
+  ]
+
+  kms_key_arns = [
+    for arn in [
+      var.root-volume-kms-key-id,
+      var.cache-volume-kms-key-id,
+      var.connection-parameter-kms-key-id,
+    ] : arn if arn != null && arn != ""
+  ]
+}
 
 # VPC
 
 resource "aws_vpc" "vpc" {
+  count      = local.create_vpc ? 1 : 0
   cidr_block = var.cidr-block
   tags       = merge(var.tags, { Name = "depot-connection-${var.connection-id}" })
 }
 
 resource "aws_internet_gateway" "internet-gateway" {
-  vpc_id = aws_vpc.vpc.id
+  count  = local.create_public_route ? 1 : 0
+  vpc_id = local.vpc_id
   tags   = merge(var.tags, { Name = "depot-connection-${var.connection-id}" })
 }
 
 resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.vpc.id
+  count  = local.create_public_route ? 1 : 0
+  vpc_id = local.vpc_id
   tags   = merge(var.tags, { Name = "depot-connection-${var.connection-id}" })
 }
 
 resource "aws_route" "public-internet-gateway" {
-  route_table_id         = aws_route_table.public.id
+  count                  = local.create_public_route ? 1 : 0
+  route_table_id         = aws_route_table.public[0].id
   destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = aws_internet_gateway.internet-gateway.id
+  gateway_id             = aws_internet_gateway.internet-gateway[0].id
 }
 
 resource "aws_subnet" "public" {
-  count                   = length(var.subnets)
-  vpc_id                  = aws_vpc.vpc.id
+  count                   = local.create_subnets ? length(var.subnets) : 0
+  vpc_id                  = local.vpc_id
   availability_zone       = var.subnets[count.index].availability-zone
   cidr_block              = var.subnets[count.index].cidr-block
-  map_public_ip_on_launch = true
+  map_public_ip_on_launch = var.map-public-ip-on-launch
   tags                    = merge(var.tags, { "Name" = "depot-${var.connection-id}-${var.subnets[count.index].availability-zone}" })
 }
 
 resource "aws_route_table_association" "public" {
-  count          = length(var.subnets)
+  count          = local.create_public_route ? length(aws_subnet.public) : 0
   subnet_id      = aws_subnet.public[count.index].id
-  route_table_id = aws_route_table.public.id
+  route_table_id = aws_route_table.public[0].id
+}
+
+resource "aws_flow_log" "vpc" {
+  count                = var.flow-log-destination-arn == null ? 0 : 1
+  vpc_id               = local.vpc_id
+  traffic_type         = var.flow-log-traffic-type
+  log_destination      = var.flow-log-destination-arn
+  log_destination_type = var.flow-log-destination-type
+  iam_role_arn         = var.flow-log-iam-role-arn
+  tags                 = merge(var.tags, { Name = "depot-connection-${var.connection-id}" })
 }
 
 # Instance IAM
@@ -63,74 +129,81 @@ resource "aws_iam_instance_profile" "instance" {
 resource "aws_iam_role_policy_attachment" "instance-ssm" {
   count      = var.allow-ssm-access ? 1 : 0
   role       = aws_iam_role.instance.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  policy_arn = "arn:${local.partition}:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 # Security Groups
 
 resource "aws_default_security_group" "default" {
-  vpc_id = aws_vpc.vpc.id
+  count  = local.create_vpc ? 1 : 0
+  vpc_id = local.vpc_id
 }
 
 resource "aws_security_group" "instance-buildkit" {
+  count       = local.create_security_groups ? 1 : 0
   name        = "depot-connection-${var.connection-id}-instance-buildkit"
   description = "Security group for Depot connection BuildKit instances"
-  vpc_id      = aws_vpc.vpc.id
+  vpc_id      = local.vpc_id
 
   ingress {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.buildkit-ingress-cidr-blocks
   }
 
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.buildkit-egress-cidr-blocks
   }
 
   tags = merge(var.tags, { Name = "depot-connection-${var.connection-id}-instance-buildkit" })
 }
 
 resource "aws_security_group" "instance-default" {
+  count       = local.create_security_groups ? 1 : 0
   name        = "depot-connection-${var.connection-id}-instance-default"
   description = "Security group for Depot connection instances"
-  vpc_id      = aws_vpc.vpc.id
+  vpc_id      = local.vpc_id
 
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.default-egress-cidr-blocks
   }
 
   tags = merge(var.tags, { Name = "depot-connection-${var.connection-id}-instance-default" })
 }
 
 resource "aws_ssm_parameter" "connection" {
-  name = "/depot/connection/${var.connection-id}"
-  type = "String"
+  name   = "/depot/connection/${var.connection-id}"
+  type   = var.connection-parameter-type
+  key_id = var.connection-parameter-kms-key-id
   value = jsonencode({
-    accountID          = data.aws_caller_identity.current.account_id
-    connectionID       = var.connection-id
-    instanceProfileARN = aws_iam_instance_profile.instance.arn
-    instanceRoleARN    = aws_iam_role.instance.arn
-    region             = data.aws_region.current.region
-    routeTableID       = aws_route_table.public.id
-    securityGroups = {
-      buildkit = aws_security_group.instance-buildkit.id
-      default  = aws_security_group.instance-default.id
-    }
+    accountID                = local.account_id
+    associatePublicIPAddress = var.associate-public-ip-address
+    cacheVolumeKMSKeyID      = var.cache-volume-kms-key-id
+    connectionID             = var.connection-id
+    controllerRoleARN        = aws_iam_role.controller.arn
+    instanceProfileARN       = aws_iam_instance_profile.instance.arn
+    instanceRoleARN          = aws_iam_role.instance.arn
+    launchTemplateID         = var.launch-template-id
+    partition                = local.partition
+    region                   = local.region
+    rootVolumeKMSKeyID       = var.root-volume-kms-key-id
+    routeTableID             = local.route_table_id
+    securityGroups           = local.security_groups
     subnets = [
-      for subnet in aws_subnet.public : {
+      for subnet in local.subnets : {
         id               = subnet.id
-        availabilityZone = subnet.availability_zone
-        cidrBlock        = subnet.cidr_block
+        availabilityZone = subnet.availabilityZone
+        cidrBlock        = subnet.cidrBlock
       }
     ]
-    vpcID = aws_vpc.vpc.id
+    vpcID = local.vpc_id
   })
 
   tags = merge(var.tags, { "depot-connection" = var.connection-id })
@@ -140,9 +213,9 @@ resource "aws_iam_policy" "controller" {
   name = "depot-connection-${var.connection-id}-controller"
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
+    Statement = concat([
       {
-        Action   = ["ec2:DescribeInstances", "ec2:DescribeVolumes"]
+        Action   = ["ec2:DescribeInstances", "ec2:DescribeVolumes", "ec2:DescribeLaunchTemplates", "ec2:DescribeLaunchTemplateVersions"]
         Effect   = "Allow"
         Resource = "*"
       },
@@ -157,19 +230,22 @@ resource "aws_iam_policy" "controller" {
       {
         Action = ["ec2:RunInstances"]
         Effect = "Allow"
-        Resource = concat([
-          aws_security_group.instance-buildkit.arn,
-          aws_security_group.instance-default.arn,
-          "arn:aws:ec2:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:network-interface/*",
-          "arn:aws:ec2:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:volume/*",
-          "arn:aws:ec2:${data.aws_region.current.region}::image/*",
-        ], [for s in aws_subnet.public : s.arn])
+        Resource = concat(
+          local.security_group_arns,
+          [
+            "arn:${local.partition}:ec2:${local.region}:${local.account_id}:network-interface/*",
+            "arn:${local.partition}:ec2:${local.region}:${local.account_id}:volume/*",
+            "arn:${local.partition}:ec2:${local.region}::image/*",
+          ],
+          [for subnet in local.subnets : subnet.arn],
+          var.launch-template-id == null ? [] : ["arn:${local.partition}:ec2:${local.region}:${local.account_id}:launch-template/${var.launch-template-id}"],
+        )
       },
 
       {
         Action   = ["ec2:RunInstances"]
         Effect   = "Allow"
-        Resource = "arn:aws:ec2:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:instance/*",
+        Resource = "arn:${local.partition}:ec2:${local.region}:${local.account_id}:instance/*",
         Condition = {
           StringEquals = {
             "aws:RequestTag/depot-connection" = var.connection-id,
@@ -187,14 +263,14 @@ resource "aws_iam_policy" "controller" {
       {
         Action    = ["ec2:AttachVolume", "ec2:DetachVolume"],
         Effect    = "Allow",
-        Resource  = ["arn:aws:ec2:*:*:instance/*", "arn:aws:ec2:*:*:volume/*"],
+        Resource  = ["arn:${local.partition}:ec2:*:*:instance/*", "arn:${local.partition}:ec2:*:*:volume/*"],
         Condition = { StringEquals = { "aws:ResourceTag/depot-connection" = var.connection-id } }
       },
 
       {
         Action   = ["ec2:CreateTags"],
         Effect   = "Allow",
-        Resource = "arn:aws:ec2:*:*:*/*",
+        Resource = "arn:${local.partition}:ec2:*:*:*/*",
         Condition = {
           StringEquals = {
             "aws:RequestTag/depot-connection" = var.connection-id,
@@ -219,7 +295,15 @@ resource "aws_iam_policy" "controller" {
         Effect   = "Allow"
         Resource = aws_ssm_parameter.connection.arn
       },
-    ]
+      ],
+      length(local.kms_key_arns) == 0 ? [] : [
+        {
+          Action   = ["kms:CreateGrant", "kms:DescribeKey", "kms:Encrypt", "kms:Decrypt", "kms:GenerateDataKeyWithoutPlaintext", "kms:ReEncryptFrom", "kms:ReEncryptTo"]
+          Effect   = "Allow"
+          Resource = local.kms_key_arns
+        }
+      ]
+    )
   })
 }
 
