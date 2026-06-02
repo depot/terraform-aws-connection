@@ -173,28 +173,33 @@ resource "aws_ssm_parameter" "connection" {
   name   = "/depot/connection/${var.connection-id}"
   type   = "SecureString"
   key_id = var.connection-parameter-kms-key-id
-  value = jsonencode({
-    accountID                = local.account_id
-    associatePublicIPAddress = var.associate-public-ip-address
-    connectionID             = var.connection-id
-    controllerRoleARN        = aws_iam_role.controller.arn
-    instanceProfileARN       = aws_iam_instance_profile.instance.arn
-    instanceRoleARN          = aws_iam_role.instance.arn
-    launchTemplateID         = var.launch-template-id
-    partition                = local.partition
-    region                   = local.region
-    routeTableID             = local.route_table_id
-    securityGroups           = local.security_groups
-    subnets = [
-      for subnet in local.subnets : {
-        id               = subnet.id
-        availabilityZone = subnet.availabilityZone
-        cidrBlock        = subnet.cidrBlock
-      }
-    ]
-    volumeKMSKeyID = var.volume-kms-key-id
-    vpcID          = local.vpc_id
-  })
+  value = jsonencode(merge(
+    {
+      accountID                = local.account_id
+      associatePublicIPAddress = var.associate-public-ip-address
+      connectionID             = var.connection-id
+      controllerRoleARN        = aws_iam_role.controller.arn
+      depotBootstrapMode       = var.depot-bootstrap-mode
+      instanceProfileARN       = aws_iam_instance_profile.instance.arn
+      instanceRoleARN          = aws_iam_role.instance.arn
+      launchTemplateID         = var.launch-template-id
+      partition                = local.partition
+      region                   = local.region
+      routeTableID             = local.route_table_id
+      securityGroups           = local.security_groups
+      subnets = [
+        for subnet in local.subnets : {
+          id               = subnet.id
+          availabilityZone = subnet.availabilityZone
+          cidrBlock        = subnet.cidrBlock
+        }
+      ]
+      volumeKMSKeyID = var.volume-kms-key-id
+      vpcID          = local.vpc_id
+    },
+    var.depot-builder-ami-id-x86 == null ? {} : { depotBuilderAMIIdX86 = var.depot-builder-ami-id-x86 },
+    var.depot-builder-ami-id-arm == null ? {} : { depotBuilderAMIIdARM = var.depot-builder-ami-id-arm },
+  ))
 
   tags = merge(var.tags, { "depot-connection" = var.connection-id })
 }
