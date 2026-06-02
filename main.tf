@@ -182,7 +182,6 @@ resource "aws_ssm_parameter" "connection" {
       depotBootstrapMode       = var.depot-bootstrap-mode
       instanceProfileARN       = aws_iam_instance_profile.instance.arn
       instanceRoleARN          = aws_iam_role.instance.arn
-      launchTemplateID         = var.launch-template-id
       partition                = local.partition
       region                   = local.region
       routeTableID             = local.route_table_id
@@ -194,11 +193,12 @@ resource "aws_ssm_parameter" "connection" {
           cidrBlock        = subnet.cidrBlock
         }
       ]
-      volumeKMSKeyID = var.volume-kms-key-id
-      vpcID          = local.vpc_id
+      vpcID = local.vpc_id
     },
     var.depot-builder-ami-id-x86 == null ? {} : { depotBuilderAMIIdX86 = var.depot-builder-ami-id-x86 },
     var.depot-builder-ami-id-arm == null ? {} : { depotBuilderAMIIdARM = var.depot-builder-ami-id-arm },
+    var.launch-template-id == null ? {} : { launchTemplateID = var.launch-template-id },
+    var.volume-kms-key-id == null ? {} : { volumeKMSKeyID = var.volume-kms-key-id },
   ))
 
   tags = merge(var.tags, { "depot-connection" = var.connection-id })
