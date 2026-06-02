@@ -44,6 +44,29 @@ module "connection" {
 
 The connection metadata includes `volumeKMSKeyID` and `launchTemplateID` when `volume-kms-key-id` and `launch-template-id` are provided, so Depot can use those values when launching instances and creating EBS volumes.
 
+## AMI-backed builder bootstrap
+
+```tf
+module "connection" {
+  source = "depot/connection/aws"
+
+  connection-id       = "xxxxxx"
+  controller-role-arn = module.controller.controller-role-arn
+  cidr-block          = "10.0.0.0/16"
+  subnets = [
+    { availability-zone = "us-east-1a", cidr-block = "10.0.1.0/18" },
+    { availability-zone = "us-east-1b", cidr-block = "10.0.64.0/18" },
+    { availability-zone = "us-east-1c", cidr-block = "10.0.128.0/18" },
+  ]
+
+  depot-bootstrap-mode     = "ami-tags"
+  depot-builder-ami-id-x86 = "ami-123"
+  depot-builder-ami-id-arm = "ami-456"
+}
+```
+
+When `depot-bootstrap-mode` is `ami-tags`, Depot reads bootstrap metadata from EC2 instance tags and expects builder software to already be baked into the AMI. Provide one AMI ID per architecture that the connection should run.
+
 <!-- BEGIN_TF_DOCS -->
 
 ## Inputs
@@ -57,6 +80,9 @@ The connection metadata includes `volumeKMSKeyID` and `launchTemplateID` when `v
 | <a name="input_cidr-block"></a> [cidr-block](#input_cidr-block)                   | VPC CIDR block                                                               | `string`                                                            | `"10.0.0.0/16"` |    no    |
 | <a name="input_connection-parameter-kms-key-id"></a> [connection-parameter-kms-key-id](#input_connection-parameter-kms-key-id) | KMS key ID or ARN for the SSM SecureString connection metadata parameter | `string` | `null` | no |
 | <a name="input_create-internet-gateway"></a> [create-internet-gateway](#input_create-internet-gateway) | Whether to create public internet routing for module-managed subnets | `bool` | `true` | no |
+| <a name="input_depot-bootstrap-mode"></a> [depot-bootstrap-mode](#input_depot-bootstrap-mode) | Depot builder bootstrap mode. Use userdata for the default cloud-init bootstrap or ami-tags for builders pre-baked into the AMI. | `string` | `"userdata"` | no |
+| <a name="input_depot-builder-ami-id-arm"></a> [depot-builder-ami-id-arm](#input_depot-builder-ami-id-arm) | AMI ID Depot should use for ARM builders. Required by Depot for ARM builders when depot-bootstrap-mode is ami-tags. | `string` | `null` | no |
+| <a name="input_depot-builder-ami-id-x86"></a> [depot-builder-ami-id-x86](#input_depot-builder-ami-id-x86) | AMI ID Depot should use for x86 builders. Required by Depot when depot-bootstrap-mode is ami-tags. | `string` | `null` | no |
 | <a name="input_existing-subnets"></a> [existing-subnets](#input_existing-subnets) | Existing subnets to use instead of creating subnets | `list(object({ id = string, availability-zone = string, cidr-block = string }))` | `[]` | no |
 | <a name="input_launch-template-id"></a> [launch-template-id](#input_launch-template-id) | Launch template ID Depot should use when launching instances | `string` | `null` | no |
 | <a name="input_security-groups"></a> [security-groups](#input_security-groups) | Existing security groups for Depot instances | `object({ buildkit = string, default = string })` | `null` | no |
