@@ -275,6 +275,17 @@ resource "aws_iam_policy" "controller" {
       },
 
       {
+        Action   = ["ec2:CreateTags"],
+        Effect   = "Allow",
+        Resource = "arn:${local.partition}:ec2:*:*:volume/*",
+        Condition = {
+          StringEquals = {
+            "ec2:CreateAction" = ["CreateVolume", "RunInstances"],
+          }
+        }
+      },
+
+      {
         Action   = ["iam:PassRole"]
         Effect   = "Allow"
         Resource = aws_iam_role.instance.arn
