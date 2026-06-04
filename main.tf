@@ -197,6 +197,7 @@ resource "aws_ssm_parameter" "connection" {
     },
     var.depot-builder-ami-id-x86 == null ? {} : { depotBuilderAMIIdX86 = var.depot-builder-ami-id-x86 },
     var.depot-builder-ami-id-arm == null ? {} : { depotBuilderAMIIdARM = var.depot-builder-ami-id-arm },
+    length(var.extra-tags) == 0 ? {} : { extraTags = var.extra-tags },
     var.launch-template-id == null ? {} : { launchTemplateID = var.launch-template-id },
     var.volume-kms-key-id == null ? {} : { volumeKMSKeyID = var.volume-kms-key-id },
   ))

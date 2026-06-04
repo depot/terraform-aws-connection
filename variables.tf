@@ -114,6 +114,12 @@ variable "launch-template-id" {
   default     = null
 }
 
+variable "extra-tags" {
+  type        = map(string)
+  description = "Additional AWS tags Depot should apply to launched builder instances and root volumes"
+  default     = {}
+}
+
 variable "depot-bootstrap-mode" {
   type        = string
   description = "Depot builder bootstrap mode. Use userdata for the default cloud-init bootstrap or ami-tags for builders pre-baked into the AMI."
