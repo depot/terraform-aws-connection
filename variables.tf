@@ -120,25 +120,14 @@ variable "extra-tags" {
   default     = {}
 }
 
-variable "depot-bootstrap-mode" {
-  type        = string
-  description = "Depot builder bootstrap mode. Use userdata for the default cloud-init bootstrap or ami-tags for builders pre-baked into the AMI."
-  default     = "userdata"
-
-  validation {
-    condition     = contains(["userdata", "ami-tags"], var.depot-bootstrap-mode)
-    error_message = "depot-bootstrap-mode must be either userdata or ami-tags."
-  }
-}
-
 variable "depot-builder-ami-id-x86" {
   type        = string
-  description = "AMI ID Depot should use for x86 builders. Required by Depot when depot-bootstrap-mode is ami-tags."
+  description = "AMI ID Depot should use for x86 builders"
   default     = null
 }
 
 variable "depot-builder-ami-id-arm" {
   type        = string
-  description = "AMI ID Depot should use for ARM builders. Required by Depot for ARM builders when depot-bootstrap-mode is ami-tags."
+  description = "AMI ID Depot should use for ARM builders"
   default     = null
 }

@@ -179,7 +179,6 @@ resource "aws_ssm_parameter" "connection" {
       associatePublicIPAddress = var.associate-public-ip-address
       connectionID             = var.connection-id
       controllerRoleARN        = aws_iam_role.controller.arn
-      depotBootstrapMode       = var.depot-bootstrap-mode
       instanceProfileARN       = aws_iam_instance_profile.instance.arn
       instanceRoleARN          = aws_iam_role.instance.arn
       partition                = local.partition
