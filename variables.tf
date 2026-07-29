@@ -122,12 +122,12 @@ variable "extra-tags" {
 
 variable "depot-builder-ami-id-x86" {
   type        = string
-  description = "AMI ID Depot should use for x86 builders"
+  description = "Override the regional managed v2 AMI Depot should use for x86 builders"
   default     = null
 }
 
 variable "depot-builder-ami-id-arm" {
   type        = string
-  description = "AMI ID Depot should use for ARM builders"
+  description = "Override the regional managed v2 AMI Depot should use for ARM builders"
   default     = null
 }

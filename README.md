@@ -46,6 +46,18 @@ The connection metadata includes `volumeKMSKeyID` and `launchTemplateID` when `v
 
 ## Custom builder AMIs
 
+Depot uses the managed v2 AMIs below by default when the module runs in a
+supported region:
+
+| Partition    | Region          | x86 AMI                 | ARM AMI                 |
+| ------------ | --------------- | ----------------------- | ----------------------- |
+| AWS          | `us-east-1`     | `ami-02734227bc3c05ff2` | `ami-0642d370cc4e10bf5` |
+| AWS          | `eu-central-1`  | `ami-0db3a18b0308eb2e6` | `ami-09b13e404a4266f15` |
+| AWS GovCloud | `us-gov-west-1` | `ami-08b6735dd90919e0d` | `ami-01a3efccc8df82310` |
+| AWS GovCloud | `us-gov-east-1` | `ami-050d7f1ce5827e823` | `ami-0fb71d816ee16019c` |
+
+Override either regional default when using custom builder AMIs:
+
 ```tf
 module "connection" {
   source = "depot/connection/aws"
@@ -64,7 +76,8 @@ module "connection" {
 }
 ```
 
-Provide one AMI ID per architecture that the connection should run.
+In unsupported regions, provide one AMI ID per architecture that the connection
+should run.
 
 <!-- BEGIN_TF_DOCS -->
 
@@ -79,8 +92,8 @@ Provide one AMI ID per architecture that the connection should run.
 | <a name="input_cidr-block"></a> [cidr-block](#input_cidr-block)                                                                | VPC CIDR block                                                                           | `string`                                                                         | `"10.0.0.0/16"` |    no    |
 | <a name="input_connection-parameter-kms-key-id"></a> [connection-parameter-kms-key-id](#input_connection-parameter-kms-key-id) | KMS key ID or ARN for the SSM SecureString connection metadata parameter                 | `string`                                                                         | `null`          |    no    |
 | <a name="input_create-internet-gateway"></a> [create-internet-gateway](#input_create-internet-gateway)                         | Whether to create public internet routing for module-managed subnets                     | `bool`                                                                           | `true`          |    no    |
-| <a name="input_depot-builder-ami-id-arm"></a> [depot-builder-ami-id-arm](#input_depot-builder-ami-id-arm)                      | AMI ID Depot should use for ARM builders                                                 | `string`                                                                         | `null`          |    no    |
-| <a name="input_depot-builder-ami-id-x86"></a> [depot-builder-ami-id-x86](#input_depot-builder-ami-id-x86)                      | AMI ID Depot should use for x86 builders                                                 | `string`                                                                         | `null`          |    no    |
+| <a name="input_depot-builder-ami-id-arm"></a> [depot-builder-ami-id-arm](#input_depot-builder-ami-id-arm)                      | Override the regional managed v2 AMI Depot should use for ARM builders                   | `string`                                                                         | `null`          |    no    |
+| <a name="input_depot-builder-ami-id-x86"></a> [depot-builder-ami-id-x86](#input_depot-builder-ami-id-x86)                      | Override the regional managed v2 AMI Depot should use for x86 builders                   | `string`                                                                         | `null`          |    no    |
 | <a name="input_existing-subnets"></a> [existing-subnets](#input_existing-subnets)                                              | Existing subnets to use instead of creating subnets                                      | `list(object({ id = string, availability-zone = string, cidr-block = string }))` | `[]`            |    no    |
 | <a name="input_launch-template-id"></a> [launch-template-id](#input_launch-template-id)                                        | Launch template ID Depot should use when launching instances                             | `string`                                                                         | `null`          |    no    |
 | <a name="input_security-groups"></a> [security-groups](#input_security-groups)                                                 | Existing security groups for Depot instances                                             | `object({ buildkit = string, default = string })`                                | `null`          |    no    |

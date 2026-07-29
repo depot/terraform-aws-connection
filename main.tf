@@ -14,6 +14,37 @@ locals {
   account_id = data.aws_caller_identity.current.account_id
   region     = data.aws_region.current.region
 
+  depot_builder_amis = {
+    aws = {
+      us-east-1 = {
+        x86 = "ami-02734227bc3c05ff2"
+        arm = "ami-0642d370cc4e10bf5"
+      }
+      eu-central-1 = {
+        x86 = "ami-0db3a18b0308eb2e6"
+        arm = "ami-09b13e404a4266f15"
+      }
+    }
+    aws-us-gov = {
+      us-gov-west-1 = {
+        x86 = "ami-08b6735dd90919e0d"
+        arm = "ami-01a3efccc8df82310"
+      }
+      us-gov-east-1 = {
+        x86 = "ami-050d7f1ce5827e823"
+        arm = "ami-0fb71d816ee16019c"
+      }
+    }
+  }
+
+  regional_depot_builder_amis = lookup(
+    lookup(local.depot_builder_amis, local.partition, {}),
+    local.region,
+    {},
+  )
+  depot_builder_ami_id_x86 = var.depot-builder-ami-id-x86 != null ? var.depot-builder-ami-id-x86 : lookup(local.regional_depot_builder_amis, "x86", null)
+  depot_builder_ami_id_arm = var.depot-builder-ami-id-arm != null ? var.depot-builder-ami-id-arm : lookup(local.regional_depot_builder_amis, "arm", null)
+
   vpc_id         = local.create_vpc ? aws_vpc.vpc[0].id : var.vpc-id
   route_table_id = local.create_public_route ? aws_route_table.public[0].id : var.route-table-id
 
@@ -194,8 +225,8 @@ resource "aws_ssm_parameter" "connection" {
       ]
       vpcID = local.vpc_id
     },
-    var.depot-builder-ami-id-x86 == null ? {} : { depotBuilderAMIIdX86 = var.depot-builder-ami-id-x86 },
-    var.depot-builder-ami-id-arm == null ? {} : { depotBuilderAMIIdARM = var.depot-builder-ami-id-arm },
+    local.depot_builder_ami_id_x86 == null ? {} : { depotBuilderAMIIdX86 = local.depot_builder_ami_id_x86 },
+    local.depot_builder_ami_id_arm == null ? {} : { depotBuilderAMIIdARM = local.depot_builder_ami_id_arm },
     length(var.extra-tags) == 0 ? {} : { extraTags = var.extra-tags },
     var.launch-template-id == null ? {} : { launchTemplateID = var.launch-template-id },
     var.volume-kms-key-id == null ? {} : { volumeKMSKeyID = var.volume-kms-key-id },
